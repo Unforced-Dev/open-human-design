@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bodygraph — Your Human Design</title>
+  <meta name="description" content="Discover your Human Design chart. Interactive bodygraph with type, strategy, authority, profile, variable, circuits, transits, and team analysis.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/styles.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-inner">
+        <a href="/" class="logo">
+          <span class="logo-mark">◇</span>
+          <span class="logo-text">Bodygraph</span>
+        </a>
+        <nav class="nav">
+          <button class="nav-link active" data-view="chart">My Chart</button>
+          <button class="nav-link" data-view="transits">Transits</button>
+          <button class="nav-link" data-view="connection">Connection</button>
+          <button class="nav-link" data-view="team">Team</button>
+        </nav>
+        <button id="theme-toggle" class="theme-toggle" title="Toggle dark mode">
+          <span class="theme-icon">◐</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Birth Data Entry -->
+    <section id="birth-entry" class="birth-entry">
+      <div class="entry-container">
+        <h1 class="entry-title">Discover Your Design</h1>
+        <p class="entry-subtitle">Enter your birth details to calculate your Human Design chart</p>
+        <form id="birth-form" class="birth-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="birth-date">Birth Date</label>
+              <input type="date" id="birth-date" required>
+            </div>
+            <div class="form-group">
+              <label for="birth-time">Birth Time</label>
+              <input type="time" id="birth-time" value="12:00" required>
+            </div>
+            <div class="form-group">
+              <label for="timezone">UTC Offset</label>
+              <select id="timezone">
+                <option value="-12">UTC-12</option>
+                <option value="-11">UTC-11</option>
+                <option value="-10">UTC-10</option>
+                <option value="-9">UTC-9</option>
+                <option value="-8">UTC-8 (PST)</option>
+                <option value="-7">UTC-7 (MST)</option>
+                <option value="-6">UTC-6 (CST)</option>
+                <option value="-5">UTC-5 (EST)</option>
+                <option value="-4">UTC-4</option>
+                <option value="-3">UTC-3</option>
+                <option value="-2">UTC-2</option>
+                <option value="-1">UTC-1</option>
+                <option value="0" selected>UTC+0</option>
+                <option value="1">UTC+1 (CET)</option>
+                <option value="2">UTC+2</option>
+                <option value="3">UTC+3</option>
+                <option value="3.5">UTC+3:30</option>
+                <option value="4">UTC+4</option>
+                <option value="4.5">UTC+4:30</option>
+                <option value="5">UTC+5</option>
+                <option value="5.5">UTC+5:30 (IST)</option>
+                <option value="5.75">UTC+5:45</option>
+                <option value="6">UTC+6</option>
+                <option value="6.5">UTC+6:30</option>
+                <option value="7">UTC+7</option>
+                <option value="8">UTC+8</option>
+                <option value="9">UTC+9 (JST)</option>
+                <option value="9.5">UTC+9:30</option>
+                <option value="10">UTC+10</option>
+                <option value="11">UTC+11</option>
+                <option value="12">UTC+12</option>
+              </select>
+            </div>
+          </div>
+          <button type="submit" class="btn-primary">Calculate Chart</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- Main Chart View -->
+    <section id="chart-view" class="chart-view hidden">
+      <!-- Type Banner -->
+      <div id="type-banner" class="type-banner"></div>
+
+      <!-- Chart Layout -->
+      <div class="chart-layout">
+        <!-- Bodygraph Column -->
+        <div class="chart-column">
+          <div id="bodygraph-container" class="bodygraph-container"></div>
+        </div>
+
+        <!-- Info Column -->
+        <div class="info-column">
+          <!-- Foundation (always visible) -->
+          <div id="foundation-panel" class="panel"></div>
+
+          <!-- Tabs for deeper content -->
+          <div class="panel-tabs">
+            <button class="panel-tab active" data-panel="centers">Centers</button>
+            <button class="panel-tab" data-panel="channels">Channels</button>
+            <button class="panel-tab" data-panel="gates">Gates</button>
+            <button class="panel-tab" data-panel="variable">Variable</button>
+            <button class="panel-tab" data-panel="cross">Cross</button>
+          </div>
+          <div id="panel-content" class="panel-content"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Transits View -->
+    <section id="transits-view" class="view-section hidden">
+      <div class="view-container">
+        <h2 class="view-title">Today's Transits</h2>
+        <p class="view-subtitle">How current planetary positions interact with your chart</p>
+        <div class="transit-date-picker">
+          <label for="transit-date">Transit Date</label>
+          <input type="date" id="transit-date">
+          <button id="transit-today" class="btn-secondary">Today</button>
+        </div>
+        <div id="transit-content" class="transit-content"></div>
+      </div>
+    </section>
+
+    <!-- Connection View -->
+    <section id="connection-view" class="view-section hidden">
+      <div class="view-container">
+        <h2 class="view-title">Connection Chart</h2>
+        <p class="view-subtitle">See how two designs interact</p>
+        <div id="connection-form" class="connection-form">
+          <div class="person-form">
+            <h3>Person B</h3>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="conn-date">Birth Date</label>
+                <input type="date" id="conn-date" required>
+              </div>
+              <div class="form-group">
+                <label for="conn-time">Birth Time</label>
+                <input type="time" id="conn-time" value="12:00">
+              </div>
+              <div class="form-group">
+                <label for="conn-tz">UTC Offset</label>
+                <input type="number" id="conn-tz" value="0" min="-12" max="14" step="0.5">
+              </div>
+            </div>
+            <button id="conn-calculate" class="btn-primary">Compare Charts</button>
+          </div>
+        </div>
+        <div id="connection-content" class="connection-content"></div>
+      </div>
+    </section>
+
+    <!-- Team View -->
+    <section id="team-view" class="view-section hidden">
+      <div class="view-container">
+        <h2 class="view-title">Team Analysis</h2>
+        <p class="view-subtitle">Discover your group's Penta dynamics</p>
+        <div id="team-form" class="team-form">
+          <div id="team-members" class="team-members"></div>
+          <button id="add-member" class="btn-secondary">+ Add Member</button>
+          <button id="team-calculate" class="btn-primary">Analyze Team</button>
+        </div>
+        <div id="team-content" class="team-content"></div>
+      </div>
+    </section>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
