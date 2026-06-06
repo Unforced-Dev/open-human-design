@@ -97,9 +97,17 @@ export async function handleAuthorize(request, env) {
   const url = new URL(request.url);
 
   if (request.method === 'GET') {
-    // Validate the OAuth request early so broken clients fail loudly
-    const oauthReqInfo = await env.OAUTH_PROVIDER.parseAuthRequest(request);
-    const client = await env.OAUTH_PROVIDER.lookupClient(oauthReqInfo.clientId);
+    // Validate the OAuth request early so broken clients fail clearly
+    let oauthReqInfo, client;
+    try {
+      oauthReqInfo = await env.OAUTH_PROVIDER.parseAuthRequest(request);
+      client = await env.OAUTH_PROVIDER.lookupClient(oauthReqInfo.clientId);
+    } catch {
+      return PAGE('Connect', `<h1>Nothing to connect</h1>
+        <p>This page is the consent step of connecting an AI assistant — it only works when an
+        assistant sends you here. To connect yours, copy the connector URL from the app's
+        Sync panel into your AI's connector settings.</p>`);
+    }
     const session = await getSession(env, request);
     if (!session) return signInPage(url.pathname + url.search);
     return consentPage(client?.clientName || 'AI assistant', session.user.email, url.search);

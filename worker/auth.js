@@ -39,13 +39,13 @@ async function trySendEmail(env, { email, url }) {
         '',
         url,
         '',
-        "This link expires in 5 minutes. If you didn't request it, you can ignore this email."
+        "This link works once and expires soon. If you didn't request it, you can safely ignore this email."
       ].join('\n'),
       html: [
         '<div style="font-family:system-ui,sans-serif;max-width:420px;margin:0 auto;padding:24px">',
         '<h2 style="font-weight:500">Sign in to Open Human Design</h2>',
         `<p><a href="${url}" style="display:inline-block;background:#c47a2a;color:#fff;text-decoration:none;padding:10px 22px;border-radius:8px">Sign in</a></p>`,
-        '<p style="color:#777;font-size:13px">This link expires in 5 minutes. If you didn’t request it, you can ignore this email.</p>',
+        '<p style="color:#777;font-size:13px">This link works once and expires soon. If you didn’t request it, you can safely ignore this email.</p>',
         '</div>'
       ].join('')
     });

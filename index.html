@@ -5,6 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Open Human Design — Free Interactive Chart</title>
   <meta name="description" content="Free, open-source Human Design chart calculator. Interactive bodygraph with type, strategy, authority, profile, variable/PHS, transits, connection and team analysis — no account, no paywall, your data stays on your device.">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Open Human Design">
+  <meta property="og:title" content="Open Human Design — free interactive chart">
+  <meta property="og:description" content="Your complete Human Design chart — all the depth, none of the paywall. Free, open-source, private.">
+  <meta property="og:image" content="https://openhumandesign.com/og.png">
+  <meta property="og:url" content="https://openhumandesign.com/">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Open Human Design — free interactive chart">
+  <meta name="twitter:description" content="Your complete Human Design chart — all the depth, none of the paywall.">
+  <meta name="twitter:image" content="https://openhumandesign.com/og.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
@@ -49,12 +59,14 @@
       <div class="entry-container">
         <h1 class="entry-title">Discover Your Design</h1>
         <p class="entry-subtitle">Free, accurate, private — your birth data never leaves this device</p>
+        <p class="entry-explain">Human Design maps your energy type, decision-making style and strengths
+        from the moment you were born. Enter your details to see your free chart — no account needed.</p>
         <form id="birth-form" class="birth-form">
           <div class="form-row form-row-2">
             <div class="form-group">
               <label for="birth-name">Name <span class="label-soft">(optional, to save)</span></label>
               <input type="text" id="birth-name" placeholder="Your name" autocomplete="off">
-              <label class="checkbox-label"><input type="checkbox" id="ai-access"> Let my connected AI see this person</label>
+              <label class="checkbox-label hidden" id="ai-access-wrap"><input type="checkbox" id="ai-access"> Let my connected AI see this person</label>
             </div>
             <div class="form-group">
               <label for="birth-date">Birth Date</label>
@@ -64,13 +76,14 @@
           <div class="form-row form-row-2">
             <div class="form-group">
               <label for="birth-time">Birth Time <span class="label-soft">(minutes matter)</span></label>
-              <input type="time" id="birth-time" value="12:00" required>
+              <input type="time" id="birth-time" required>
               <label class="checkbox-label"><input type="checkbox" id="time-unknown"> I don't know my birth time</label>
             </div>
             <div class="form-group" id="place-group">
               <label for="birth-place">Birth Place</label>
               <input type="text" id="birth-place" placeholder="City…" autocomplete="off">
               <div id="place-results" class="place-results hidden"></div>
+              <p id="place-error" class="field-error hidden">Pick a place from the list — or enter a UTC offset manually below.</p>
             </div>
           </div>
           <div id="tz-chip" class="tz-chip hidden"></div>
@@ -78,8 +91,8 @@
             <label for="manual-tz">UTC offset at birth (e.g. -7, 5.5)</label>
             <input type="number" id="manual-tz" placeholder="e.g. -7 or 5.5" min="-12" max="14" step="0.25">
           </div>
-          <button type="button" id="manual-tz-toggle" class="link-button">Enter UTC offset manually</button>
           <button type="submit" class="btn-primary">View My Chart</button>
+          <button type="button" id="manual-tz-toggle" class="link-button" style="margin:10px auto 0;display:block">Enter UTC offset manually instead</button>
         </form>
         <div id="saved-people" class="saved-people"></div>
       </div>
@@ -126,7 +139,7 @@
           <div id="transit-bodygraph" class="bodygraph-container transit-graph"></div>
           <div id="transit-content" class="transit-content"></div>
         </div>
-        <p class="panel-intro" style="margin-top:8px">Dashed rings mark gates activated by today's transiting planets.</p>
+        <p class="panel-intro" style="margin-top:8px">Dashed rings mark gates activated by the transiting planets on the chosen date.</p>
       </div>
     </section>
 

@@ -12,6 +12,7 @@ import { getCurrentChart } from './chart.js';
 export function setupTeamView() {
   document.getElementById('add-member').addEventListener('click', addMemberRow);
   document.getElementById('team-calculate').addEventListener('click', runTeamAnalysis);
+  addMemberRow(); // never present an empty void — one ready row invites input
 }
 
 /** Refresh saved-people checkboxes each time the view opens. */
@@ -20,7 +21,7 @@ export function renderTeamView() {
   const people = listPeople();
   const current = getCurrentChart();
   if (!people.length) {
-    wrap.innerHTML = '<p class="panel-intro">Save charts to add people quickly, or add birth data below.</p>';
+    wrap.innerHTML = '<p class="panel-intro">A team needs at least two people — add their birth data below, or save charts first to pick them by name.</p>';
     return;
   }
   wrap.innerHTML = `

@@ -6,8 +6,18 @@ import {
   GATE_DESCRIPTIONS,
   CHANNEL_DESCRIPTIONS,
   GATES,
-  CHANNELS
+  CHANNELS,
+  LINE_NAMES
 } from 'natalengine';
+
+/** "a", "a and b", "a, b and c" — grammatical lists of any length. */
+function humanList(arr) {
+  if (arr.length <= 1) return arr[0] || '';
+  if (arr.length === 2) return `${arr[0]} and ${arr[1]}`;
+  return `${arr.slice(0, -1).join(', ')} and ${arr[arr.length - 1]}`;
+}
+
+const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
 import { renderBodygraph, PLANET_ORDER, PLANET_GLYPHS, PLANET_NAMES } from '../bodygraph.js';
 import { esc, formatBirth } from '../lib/format.js';
@@ -72,7 +82,7 @@ export function renderChartView(data, { onShare } = {}) {
   rerenderBodygraph();
 
   // --- Foundation + default tab ---
-  renderFoundation(chart, data.sensitivity);
+  renderFoundation(chart, data.sensitivity, birth);
   const activeTab = document.querySelector('.panel-tab.active');
   renderPanelContent(activeTab ? activeTab.dataset.panel : 'centers');
 }
@@ -87,11 +97,22 @@ export function rerenderBodygraph(transitGates = null) {
   return bodygraphApi;
 }
 
-function renderFoundation(chart, sensitivity = null) {
+function renderFoundation(chart, sensitivity = null, birth = null) {
   const panel = document.getElementById('foundation-panel');
 
   let reliabilityHtml = '';
-  if (sensitivity) {
+  // The MOST consequential caveat: a noon-guess chart can be genuinely
+  // wrong about Type/Authority/Profile — say so calmly and prominently.
+  if (birth?.timeUnknown) {
+    reliabilityHtml = `
+      <div class="reliability reliability-soft">
+        <span class="reliability-dot"></span>
+        <span>No birth time — this chart is a best guess using noon. Your <strong>Type, Authority and
+        Profile</strong> can change with the real time, so treat this as a starting point until you
+        find it (birth certificates and baby books are the usual sources).</span>
+      </div>`;
+  }
+  if (sensitivity && !birth?.timeUnknown) {
     const solid = sensitivity.shifts.length === 0;
     // Lead with reassurance and what to do — never alarm. (A founder-flagged
     // copy fix: the old wording read as a warning about the chart itself.)
@@ -104,16 +125,15 @@ function renderFoundation(chart, sensitivity = null) {
       : `
       <div class="reliability reliability-soft">
         <span class="reliability-dot"></span>
-        <span>If your birth time is exact (like from a birth certificate), you're all set.
-        If it could be off by 15+ minutes, your <strong>${esc(sensitivity.shifts.join(' and '))}</strong>
-        ${sensitivity.shifts.length === 1 ? 'sits' : 'sit'} near a boundary and ${sensitivity.shifts.length === 1 ? 'is' : 'are'} worth double-checking.
-        ${sensitivity.stable.length ? `Your ${esc(sensitivity.stable.join(', '))} hold either way.` : ''}</span>
+        <span>Your chart is solid. One fine detail — your <strong>${esc(humanList(sensitivity.shifts))}</strong> —
+        sits right on a line, so it's the only thing a birth time off by 15+ minutes could nudge.
+        Everything else holds no matter what. If your time came from a birth certificate, even that is settled.</span>
       </div>`;
   }
   const crossName = chart.incarnationCross?.fullName || chart.incarnationCross?.name || 'Unknown';
   const circuitDominant = chart.circuitAnalysis?.dominant;
   const circuitText = circuitDominant
-    ? `${circuitDominant.name.charAt(0).toUpperCase() + circuitDominant.name.slice(1)} (${circuitDominant.channelCount} channels)`
+    ? `${circuitDominant.name.charAt(0).toUpperCase() + circuitDominant.name.slice(1)} (${plural(circuitDominant.channelCount, 'channel')})`
     : 'None';
 
   panel.innerHTML = `
@@ -143,7 +163,7 @@ function renderFoundation(chart, sensitivity = null) {
       <div class="foundation-item">
         <div class="label">Definition</div>
         <div class="value">${esc(chart.definition)}</div>
-        <div class="detail">${esc(chart.centers.definedNames.length)} defined centers, ${chart.channels.length} channels</div>
+        <div class="detail">${plural(chart.centers.definedNames.length, 'defined center')}, ${plural(chart.channels.length, 'channel')}</div>
       </div>
       <div class="foundation-item">
         <div class="label">Incarnation Cross</div>
@@ -175,11 +195,12 @@ export function showGateDetail(gateNum) {
   const gate = GATES[gateNum];
 
   const acts = [];
+  const lineTag = (line) => LINE_NAMES[line] ? ` — Line ${line}, the ${LINE_NAMES[line]}` : '';
   for (const [planet, g] of Object.entries(chart.gates.design)) {
-    if (g?.gate === gateNum) acts.push(`<span class="bg-tt-design">${PLANET_GLYPHS[planet]} Design ${PLANET_NAMES[planet]} — ${gateNum}.${g.line}</span>`);
+    if (g?.gate === gateNum) acts.push(`<span class="bg-tt-design">${PLANET_GLYPHS[planet]} Design ${PLANET_NAMES[planet]} — ${gateNum}.${g.line}${lineTag(g.line)}</span>`);
   }
   for (const [planet, g] of Object.entries(chart.gates.personality)) {
-    if (g?.gate === gateNum) acts.push(`<span class="bg-tt-personality">${PLANET_GLYPHS[planet]} Personality ${PLANET_NAMES[planet]} — ${gateNum}.${g.line}</span>`);
+    if (g?.gate === gateNum) acts.push(`<span class="bg-tt-personality">${PLANET_GLYPHS[planet]} Personality ${PLANET_NAMES[planet]} — ${gateNum}.${g.line}${lineTag(g.line)}</span>`);
   }
 
   const inChannels = (chart.channels || []).filter(ch => ch.gates.includes(gateNum));
@@ -211,7 +232,9 @@ export function showGateDetail(gateNum) {
   detail.querySelector('.gate-detail-close').addEventListener('click', () => detail.classList.add('hidden'));
   detail.querySelectorAll('.gate-link').forEach(btn =>
     btn.addEventListener('click', () => showGateDetail(parseInt(btn.dataset.gate))));
-  detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  detail.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' });
+  detail.querySelector('.gate-detail-close')?.focus({ preventScroll: true });
 }
 
 // ==========================================
@@ -276,13 +299,15 @@ function renderChannelsPanel(container) {
   // the active gate "hangs", seeking its partner. Gates in multiple
   // channels (10, 20, 34, 57) can hang toward several partners at once.
   const activeSet = new Set(chart.gates.all);
-  const hanging = [];
+  const hangingMap = new Map(); // gate -> [partners]
   for (const ch of CHANNELS) {
     const [a, b] = ch.gates;
-    if (activeSet.has(a) && !activeSet.has(b)) hanging.push({ gate: a, harmonic: b });
-    if (activeSet.has(b) && !activeSet.has(a)) hanging.push({ gate: b, harmonic: a });
+    if (activeSet.has(a) && !activeSet.has(b)) (hangingMap.get(a) || hangingMap.set(a, []).get(a)).push(b);
+    if (activeSet.has(b) && !activeSet.has(a)) (hangingMap.get(b) || hangingMap.set(b, []).get(b)).push(a);
   }
-  hanging.sort((x, y) => x.gate - y.gate);
+  const hanging = [...hangingMap.entries()]
+    .map(([gate, partners]) => ({ gate, partners: partners.sort((x, y) => x - y) }))
+    .sort((x, y) => x.gate - y.gate);
 
   const channelsHtml = chart.channels.map(ch => {
     const key = `${ch.gates[0]}-${ch.gates[1]}`;
@@ -306,7 +331,7 @@ function renderChannelsPanel(container) {
       <div class="panel-title" style="margin-top:20px">Hanging Gates (${hanging.length})</div>
       <p class="panel-intro">Active gates waiting for their harmonic partner — you're drawn to people who carry the other half.</p>
       <div class="hanging-gates">
-        ${hanging.map(h => `<button class="gate-pill" data-gate="${h.gate}">Gate ${h.gate} <span class="gate-pill-partner">seeks ${h.harmonic}</span></button>`).join('')}
+        ${hanging.map(h => `<button class="gate-pill" data-gate="${h.gate}">Gate ${h.gate} <span class="gate-pill-partner">seeks ${h.partners.join(' · ')}</span></button>`).join('')}
       </div>
     ` : ''}
   `;
@@ -350,14 +375,17 @@ function renderPlanetsPanel(container) {
   const sub = (g) => g && g.color
     ? `Color ${g.color} · Tone ${g.tone} · Base ${g.base}`
     : '';
+  const subCell = (g) => g && g.color ? `${g.color}.${g.tone}.${g.base}` : '';
   const rows = PLANET_ORDER.map(planet => {
     const d = chart.gates.design[planet];
     const p = chart.gates.personality[planet];
     return `
       <div class="planet-table-row">
         <span class="planet-cell act-design" data-gate="${d ? d.gate : ''}" title="${esc(sub(d))}">${d ? `${d.gate}.${d.line}` : '—'}</span>
+        <span class="planet-cell-sub" title="Color · Tone · Base">${subCell(d)}</span>
         <span class="planet-cell-glyph" title="${esc(PLANET_NAMES[planet])}">${PLANET_GLYPHS[planet]}</span>
         <span class="planet-cell-name">${esc(PLANET_NAMES[planet])}</span>
+        <span class="planet-cell-sub" title="Color · Tone · Base">${subCell(p)}</span>
         <span class="planet-cell act-personality" data-gate="${p ? p.gate : ''}" title="${esc(sub(p))}">${p ? `${p.gate}.${p.line}` : '—'}</span>
       </div>
     `;
@@ -370,7 +398,9 @@ function renderPlanetsPanel(container) {
     <div class="planet-table">
       <div class="planet-table-row planet-table-head">
         <span class="planet-cell act-design">Design</span>
+        <span class="planet-cell-sub">c.t.b</span>
         <span></span><span></span>
+        <span class="planet-cell-sub">c.t.b</span>
         <span class="planet-cell act-personality">Personality</span>
       </div>
       ${rows}
@@ -442,10 +472,11 @@ function renderCrossPanel(container) {
     </div>
   ` : '';
 
+  const quarter = GATE_DESCRIPTIONS[chart.gates.personality.sun?.gate]?.quarter;
   container.innerHTML = `
     <div class="panel-title">Incarnation Cross</div>
     <div class="panel-heading">${esc(cross.fullName || cross.name)}</div>
-    <p>${esc(cross.angleName || '')}${cross.theme ? ' — ' + esc(cross.theme) : ''}</p>
+    <p>${esc(cross.angleName || '')}${quarter ? ` · Quarter of ${esc(quarter)}` : ''}${cross.theme ? ' — ' + esc(cross.theme) : ''}</p>
     <p class="panel-intro" style="margin-top:8px">Your cross is the life theme carried by your four primary gates — roughly 70% of the chart's energy. It unfolds over a lifetime; you don't have to do anything to live it.</p>
     <div style="margin-top:12px">
       <div class="foundation-grid">

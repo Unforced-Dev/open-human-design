@@ -9,7 +9,13 @@
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
-    "not_found_handling": "single-page-application"
+    "not_found_handling": "single-page-application",
+    // CRITICAL: browser navigations (Sec-Fetch-Mode: navigate) to unknown
+    // paths get index.html BEFORE the Worker runs unless listed here —
+    // without this, magic-link verify and OAuth consent serve the SPA
+    // shell and the whole account/AI feature is dead in real browsers
+    // (curl tests pass because they don't send navigation headers).
+    "run_worker_first": ["/api/*", "/auth/*", "/authorize", "/oauth/*", "/mcp", "/.well-known/*"]
   },
   "workers_dev": true,
   "routes": [

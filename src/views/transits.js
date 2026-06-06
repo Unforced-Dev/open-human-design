@@ -6,6 +6,8 @@
 import { calculateHDTransits, calculateTransitGates } from 'natalengine';
 import { renderBodygraph } from '../bodygraph.js';
 import { esc } from '../lib/format.js';
+
+const plural2 = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 import { getCurrentChart, showGateDetail } from './chart.js';
 
 export function setupTransitView() {
@@ -43,20 +45,31 @@ export function renderTransits() {
     });
   }
 
-  renderTransitContent(overlay);
+  renderTransitContent(overlay, date);
 }
 
-export function renderTransitContent(overlay) {
+export function renderTransitContent(overlay, date = null) {
   const container = document.getElementById('transit-content');
   const sunGate = overlay.highlights.sun;
   const moonGate = overlay.highlights.moon;
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const isToday = !date || date === todayStr;
+  const when = isToday ? 'today' : `on ${date}`;
+  const whenCap = isToday ? 'Today' : `On ${date}`;
+
+  // One-line synthesis: lead with the strongest signal instead of data soup
+  const strongest = overlay.channelCompletions[0];
+  const synthesis = strongest
+    ? `${whenCap}, the strongest theme is the <strong>${esc(strongest.channel)}</strong> channel ${strongest.natalGate ? 'completing through your chart' : 'active in the field'} — ${plural2(overlay.stats.channelCompletions, 'channel completion')} in total.`
+    : `${whenCap} is a quiet sky for your chart — no transit completes one of your channels, so the weather passes through gently.`;
 
   const completionsHtml = overlay.channelCompletions.length > 0
     ? overlay.channelCompletions.map(c => `
         <div class="transit-completion ${esc(c.significance)}">
           <div class="completion-title">${esc(c.channel)} (${c.gates.join('-')})</div>
           <div class="completion-detail">
-            ${c.natalGate ? `Your Gate ${c.natalGate} is completed by transit Gate ${c.transitGate} (${esc(c.transitPlanet)}).` : 'Pure transit channel — both gates activated by current planets.'}
+            ${c.natalGate ? `Your Gate ${c.natalGate} is completed by transit Gate ${c.transitGate} (${esc(c.transitPlanet)}).` : `Pure transit channel — both gates carried by the planets ${when}.`}
             <span class="circuit-badge ${esc(c.circuit)}">${esc(c.circuit)}</span>
           </div>
         </div>
@@ -68,7 +81,7 @@ export function renderTransitContent(overlay) {
       overlay.temporarilyDefinedCenters.map(c => `
         <div class="center-card defined" style="margin-bottom:6px">
           <div class="center-name">${esc(c.centerName)}</div>
-          <p>${esc(c.theme)} — usually undefined in your chart, activated now by transit.</p>
+          <p>${esc(c.theme)} — usually undefined in your chart, activated ${esc(when)} by transit.</p>
         </div>
       `).join('')
     : '';
@@ -86,6 +99,7 @@ export function renderTransitContent(overlay) {
     : '';
 
   container.innerHTML = `
+    <p class="panel-intro" style="font-size:14px">${synthesis}</p>
     <div class="foundation-grid" style="margin-bottom:20px">
       <div class="foundation-item">
         <div class="label">Transit Sun</div>

@@ -51,12 +51,18 @@ export const PLANET_NAMES = {
 
 // Traditional center colors (defined state): Head & G yellow, Ajna green,
 // Heart & Sacral red, Throat/Spleen/Solar Plexus/Root brown-tan — tuned
-// slightly warmer/softer to sit well in the app palette.
-const CENTER_COLORS = {
+// per theme so the centerpiece respects dark mode instead of glowing.
+const CENTER_COLORS_LIGHT = {
   head: '#e9d56b', ajna: '#a3c46c', throat: '#c2a06b',
   g: '#e9d56b', heart: '#dd6356', spleen: '#c2a06b',
   solar: '#c2a06b', sacral: '#dd6356', root: '#c2a06b'
 };
+const CENTER_COLORS_DARK = {
+  head: '#bfa94e', ajna: '#7a9c52', throat: '#9c7f53',
+  g: '#bfa94e', heart: '#b54a40', spleen: '#9c7f53',
+  solar: '#9c7f53', sacral: '#b54a40', root: '#9c7f53'
+};
+const centerColors = () => isDark() ? CENTER_COLORS_DARK : CENTER_COLORS_LIGHT;
 
 const SHAPE_KEY_MAP = {
   Head: 'head', Ajna: 'ajna', Throat: 'throat',
@@ -75,13 +81,13 @@ for (const ch of CHANNELS) {
 function palette() {
   const dark = isDark();
   return {
-    personality: dark ? '#e8e4de' : '#262220',
+    personality: dark ? '#cfc7bb' : '#262220',
     design: dark ? '#e05545' : '#c0392b',
     inactive: dark ? '#28241f' : '#eae5df',
     undefinedCenter: dark ? '#1e1c18' : '#ffffff',
     centerStroke: dark ? '#3a3630' : '#cfc7be',
     text: dark ? '#e8e4de' : '#1a1714',
-    textInactive: dark ? '#56504a' : '#b3aaa1',
+    textInactive: dark ? '#6f685f' : '#a39a90',
     transit: dark ? '#d4943a' : '#c47a2a'
   };
 }
@@ -125,11 +131,24 @@ export function renderBodygraph(container, chart, opts = {}) {
 
   // ---------- SVG ----------
   const pad = 16;
+  const chartSummary = [
+    `Human Design bodygraph.`,
+    chart.type?.name ? `Type: ${chart.type.name}.` : '',
+    chart.profile?.numbers ? `Profile ${chart.profile.numbers}.` : '',
+    chart.authority?.name ? `${chart.authority.name}.` : '',
+    definedCenters.size
+      ? `Defined centers: ${[...definedCenters].join(', ')}.`
+      : 'No defined centers (Reflector).',
+    chart.channels?.length
+      ? `Active channels: ${chart.channels.map(c => `${c.gates.join('-')} ${c.name}`).join('; ')}.`
+      : ''
+  ].filter(Boolean).join(' ');
+
   const svg = svgEl('svg', {
     class: 'bodygraph-svg',
     viewBox: `${-pad} ${-pad} ${851.41 + pad * 2} ${1309.4 + pad * 2}`,
     role: 'img',
-    'aria-label': 'Human Design bodygraph'
+    'aria-label': chartSummary
   });
 
   // Stripe pattern for gates activated by both personality and design
@@ -180,7 +199,7 @@ export function renderBodygraph(container, chart, opts = {}) {
     const defined = definedCenters.has(centerKey);
     const path = svgEl('path', {
       d: shapeData.path,
-      fill: defined ? CENTER_COLORS[centerKey] : colors.undefinedCenter,
+      fill: defined ? centerColors()[centerKey] : colors.undefinedCenter,
       stroke: defined ? 'none' : colors.centerStroke,
       'stroke-width': '1.5',
       'data-center': centerKey,
@@ -203,6 +222,17 @@ export function renderBodygraph(container, chart, opts = {}) {
     const fill = gateFill(gateNum);
 
     const g = svgEl('g', { class: 'bg-gate', 'data-gate': gateNum, cursor: opts.compact ? 'default' : 'pointer' });
+    if (interactive) {
+      g.setAttribute('tabindex', '0');
+      g.setAttribute('role', 'button');
+      g.setAttribute('aria-label', `Gate ${gateNum}${GATES[gateNum]?.name ? ' — ' + GATES[gateNum].name : ''}${isActive ? ', active' : ', inactive'}`);
+      // Invisible enlarged hit area (~44px-equivalent) so fingers can
+      // actually tap a gate; the visible circle stays delicate.
+      g.appendChild(svgEl('circle', {
+        cx: c.cx, cy: c.cy, r: 24,
+        fill: 'transparent', stroke: 'none', class: 'bg-gate-hit'
+      }));
+    }
     g.appendChild(svgEl('circle', {
       cx: c.cx, cy: c.cy, r: c.r || 12.3,
       fill: isActive ? fill : 'transparent',
@@ -310,6 +340,14 @@ export function renderBodygraph(container, chart, opts = {}) {
       const target = evt.target.closest('[data-gate]');
       if (target && opts.onGateClick) opts.onGateClick(parseInt(target.getAttribute('data-gate')));
     });
+    svg.addEventListener('keydown', (evt) => {
+      if (evt.key !== 'Enter' && evt.key !== ' ') return;
+      const target = evt.target.closest('[data-gate]');
+      if (target && opts.onGateClick) {
+        evt.preventDefault();
+        opts.onGateClick(parseInt(target.getAttribute('data-gate')));
+      }
+    });
 
     container.appendChild(tooltip);
   }
@@ -325,7 +363,13 @@ export function renderBodygraph(container, chart, opts = {}) {
     if (dateLabel) col.appendChild(el('div', { class: 'bg-planets-date', text: dateLabel }));
     for (const planet of PLANET_ORDER) {
       const g = gates?.[planet];
-      const row = el('div', { class: 'bg-planet-row', 'data-gate': g ? g.gate : '', title: PLANET_NAMES[planet] });
+      const row = el('button', {
+        class: 'bg-planet-row',
+        type: 'button',
+        'data-gate': g ? g.gate : '',
+        title: PLANET_NAMES[planet],
+        'aria-label': g ? `${title} ${PLANET_NAMES[planet]}: gate ${g.gate} line ${g.line}` : `${PLANET_NAMES[planet]}: no activation`
+      });
       row.appendChild(el('span', { class: 'bg-planet-glyph', text: PLANET_GLYPHS[planet] }));
       row.appendChild(el('span', { class: 'bg-planet-act', text: g ? `${g.gate}.${g.line}` : '—' }));
       if (g) {

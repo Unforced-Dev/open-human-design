@@ -89,7 +89,12 @@ function renderPeopleSwitcher() {
   const currentId = currentData?.birth?.id || '';
   const unsaved = currentData && !currentData.birth.id
     ? `<option value="__current" selected>${esc(currentData.birth.name) || 'Current chart'}</option>` : '';
+  // Never impersonate a loaded person: when nothing is loaded, show an
+  // explicit placeholder instead of letting the browser display option #1.
+  const placeholder = !currentData && people.length
+    ? '<option value="" selected disabled>— saved charts —</option>' : '';
   select.innerHTML = `
+    ${placeholder}
     ${unsaved}
     ${people.map(p => `<option value="${esc(p.id)}" ${p.id === currentId ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}
     <option value="__new">+ New chart…</option>
@@ -197,6 +202,8 @@ async function setupSync() {
   });
 
   if (user) {
+    // The AI-access checkbox only means something once an account exists
+    document.getElementById('ai-access-wrap')?.classList.remove('hidden');
     enableSync();
     startSync({
       onRemoteChange: () => {
@@ -254,7 +261,9 @@ async function setupSync() {
       await requestMagicLink(email);
       status.textContent = 'Check your email — the sign-in button works once. ✓';
     } catch {
-      status.textContent = 'Could not send — sync lives at openhumandesign.com';
+      status.textContent = window.location.hostname.endsWith('openhumandesign.com')
+        ? 'Could not send the email just now — please try again in a moment.'
+        : 'Sync lives at openhumandesign.com — this copy of the app has no server.';
     }
   });
 }

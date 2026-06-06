@@ -41,7 +41,7 @@ export function sensitivityCheck(birth, chart, windowMinutes = 15) {
   const labels = {
     type: 'Type', authority: 'Authority', profile: 'Profile',
     definition: 'Definition', cross: 'Incarnation Cross',
-    variable: 'Variable arrows', moon: 'Moon line'
+    variable: 'Variable', moon: 'Moon'
   };
 
   const decimal = toDecimalHour(birth.birthTime);

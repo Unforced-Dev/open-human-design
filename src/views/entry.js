@@ -88,6 +88,8 @@ export function setupEntryView({ onSubmit }) {
   }
 
   placeInput.addEventListener('input', () => {
+    placeInput.removeAttribute('aria-invalid');
+    document.getElementById('place-error')?.classList.add('hidden');
     selectedPlace = null;
     updateTzChip();
     const q = placeInput.value.trim();
@@ -189,9 +191,10 @@ export function setupEntryView({ onSubmit }) {
         name: selectedPlace.label
       };
     } else {
-      // No place selected — treat the typed text as absent and ask
+      // No place selected — make the reason visible, not just a placeholder
       placeInput.focus();
-      placeInput.setAttribute('placeholder', 'Choose a place from the list (or use manual offset)');
+      placeInput.setAttribute('aria-invalid', 'true');
+      document.getElementById('place-error')?.classList.remove('hidden');
       return;
     }
 
