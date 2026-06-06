@@ -21,7 +21,7 @@ import OAuthProvider from '@cloudflare/workers-oauth-provider';
 import { handleMcpRequest } from './mcp.js';
 import { createAuth, getSession } from './auth.js';
 import { handleSync } from './sync.js';
-import { handleAuthorize } from './oauth-ui.js';
+import { handleAuthorize, verifyInterstitial } from './oauth-ui.js';
 
 const MCP_CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -65,6 +65,10 @@ const defaultHandler = {
 
     if (pathname === '/authorize') {
       return handleAuthorize(request, env);
+    }
+
+    if (pathname === '/auth/verify') {
+      return verifyInterstitial(request);
     }
 
     if (pathname.startsWith('/api/')) {

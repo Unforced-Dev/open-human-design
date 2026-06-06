@@ -173,7 +173,23 @@ async function setupSync() {
   const status = document.getElementById('sync-status');
   button.classList.remove('hidden');
 
+  // Surface magic-link failures (expired / already used) instead of
+  // silently booting — better-auth redirects here with ?error=...
+  const params = new URLSearchParams(window.location.search);
+  const authError = params.get('error');
+  if (authError) {
+    params.delete('error');
+    history.replaceState(null, '', `${window.location.pathname}${params.size ? '?' + params : ''}`);
+  }
+
   const user = await getSessionUser();
+
+  if (!user && authError) {
+    popover.classList.remove('hidden');
+    status.textContent = authError === 'INVALID_TOKEN'
+      ? 'That sign-in link expired or was already used — request a fresh one.'
+      : `Sign-in didn't complete (${authError}) — try again.`;
+  }
 
   if (user) {
     enableSync();

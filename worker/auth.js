@@ -76,8 +76,15 @@ export function createAuth(env, baseURL) {
     },
     plugins: [
       magicLink({
-        expiresIn: 300,
-        sendMagicLink: async ({ email, url }) => sendMagicLinkEmail(env, { email, url })
+        // 15 min — interstitial adds a human step, so give comfortable slack
+        expiresIn: 900,
+        sendMagicLink: async ({ email, url }) => {
+          // Email the styled interstitial (/auth/verify), not the raw
+          // endpoint: mail scanners prefetch links and would consume the
+          // single-use token before the human clicks.
+          const interstitial = url.replace('/api/auth/magic-link/verify', '/auth/verify');
+          return sendMagicLinkEmail(env, { email, url: interstitial });
+        }
       })
     ]
   });

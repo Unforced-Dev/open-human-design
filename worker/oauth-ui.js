@@ -72,6 +72,27 @@ function consentPage(clientName, email, qs) {
   `);
 }
 
+/**
+ * Magic-link interstitial — emails link HERE instead of the raw verify
+ * endpoint. Mail scanners prefetch GETs and would consume the single-use
+ * token before the human clicks; a deliberate button press spends it.
+ */
+export function verifyInterstitial(request) {
+  const url = new URL(request.url);
+  const token = url.searchParams.get('token') || '';
+  const callbackURL = url.searchParams.get('callbackURL') || '/';
+  if (!token || !/^[A-Za-z0-9_-]+$/.test(token)) {
+    return PAGE('Sign in', `<h1>Link incomplete</h1><p>This sign-in link is missing its token — request a fresh one from the app.</p>`);
+  }
+  const verifyHref = `/api/auth/magic-link/verify?token=${encodeURIComponent(token)}&callbackURL=${encodeURIComponent(callbackURL)}`;
+  return PAGE('Sign in', `
+    <h1>Finish signing in</h1>
+    <p>One tap and you're in — this link works once.</p>
+    <a href="${esc(verifyHref)}" style="display:block;text-align:center;text-decoration:none;padding:11px;background:#c47a2a;color:#fff;border-radius:8px;font-size:14px;font-weight:600">Sign in to Open Human Design</a>
+    <p class="muted">Didn't request this? You can safely close this page.</p>
+  `);
+}
+
 export async function handleAuthorize(request, env) {
   const url = new URL(request.url);
 
