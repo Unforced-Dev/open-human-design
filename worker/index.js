@@ -22,6 +22,7 @@ import { handleMcpRequest } from './mcp.js';
 import { createAuth, getSession } from './auth.js';
 import { handleSync } from './sync.js';
 import { handleAuthorize, verifyInterstitial } from './oauth-ui.js';
+import { handleOgImage, rewriteShareMeta } from './og.js';
 
 const MCP_CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -63,6 +64,10 @@ const defaultHandler = {
     const url = new URL(request.url);
     const { pathname } = url;
 
+    if (pathname === '/og/card.png') {
+      return handleOgImage(request);
+    }
+
     if (pathname === '/authorize') {
       return handleAuthorize(request, env);
     }
@@ -93,8 +98,14 @@ const defaultHandler = {
       return withHeaders(Response.json({ error: 'not found' }, { status: 404 }), cors);
     }
 
-    // Static assets (SPA) — wrangler serves env.ASSETS with SPA fallback
-    return env.ASSETS.fetch(request);
+    // Static assets (SPA) — wrangler serves env.ASSETS with SPA fallback.
+    // Share links (/?d=…) get their OpenGraph tags rewritten per-chart so
+    // unfurls show the person, not the generic site card.
+    const assetResponse = await env.ASSETS.fetch(request);
+    if (url.searchParams.has('d') && (assetResponse.headers.get('content-type') || '').includes('text/html')) {
+      return rewriteShareMeta(assetResponse, url);
+    }
+    return assetResponse;
   }
 };
 

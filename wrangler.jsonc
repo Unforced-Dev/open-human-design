@@ -15,7 +15,7 @@
     // without this, magic-link verify and OAuth consent serve the SPA
     // shell and the whole account/AI feature is dead in real browsers
     // (curl tests pass because they don't send navigation headers).
-    "run_worker_first": ["/api/*", "/auth/*", "/authorize", "/oauth/*", "/mcp", "/.well-known/*"]
+    "run_worker_first": ["/", "/og/*", "/api/*", "/auth/*", "/authorize", "/oauth/*", "/mcp", "/.well-known/*"]
   },
   "workers_dev": true,
   "routes": [
@@ -39,6 +39,9 @@
     {
       "name": "SEND_EMAIL"
     }
+  ],
+  "rules": [
+    { "type": "Data", "globs": ["**/*.ttf"], "fallthrough": true }
   ],
   "observability": {
     "enabled": true
