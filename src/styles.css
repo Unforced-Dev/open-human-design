@@ -1137,6 +1137,16 @@ body {
 .gate-detail-desc { font-size: 13.5px; color: var(--text-secondary); line-height: 1.6; }
 .gate-detail-inactive { font-size: 13px; color: var(--text-tertiary); font-style: italic; }
 
+.gate-detail-lines { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+.gate-detail-line {
+  padding: 10px 12px;
+  background: var(--bg-sunken);
+  border-radius: var(--radius);
+  border-left: 3px solid var(--accent);
+}
+.gate-detail-line strong { display: block; font-size: 13px; margin-bottom: 3px; }
+.gate-detail-line p { font-size: 12.5px; color: var(--text-secondary); line-height: 1.55; }
+
 .gate-detail-channel {
   margin-top: 10px;
   padding: 10px 12px;

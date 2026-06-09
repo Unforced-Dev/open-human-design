@@ -4,6 +4,7 @@
 
 import {
   GATE_DESCRIPTIONS,
+  LINE_DESCRIPTIONS,
   CHANNEL_DESCRIPTIONS,
   GATES,
   CHANNELS,
@@ -216,6 +217,15 @@ export function showGateDetail(gateNum) {
     `;
   }).join('');
 
+  // Line-level interpretations for the lines activated in this gate.
+  const activeLines = new Set();
+  for (const g of Object.values(chart.gates.design)) if (g?.gate === gateNum) activeLines.add(g.line);
+  for (const g of Object.values(chart.gates.personality)) if (g?.gate === gateNum) activeLines.add(g.line);
+  const lineHtml = [...activeLines].sort().map(line => {
+    const ld = LINE_DESCRIPTIONS[gateNum]?.[line];
+    return ld ? `<div class="gate-detail-line"><strong>Line ${line} · ${esc(ld.keynote)}</strong><p>${esc(ld.description)}</p></div>` : '';
+  }).join('');
+
   const isActive = acts.length > 0;
   detail.innerHTML = `
     <div class="gate-detail-card">
@@ -224,6 +234,7 @@ export function showGateDetail(gateNum) {
       ${desc ? `<div class="gate-detail-keynote">${esc(desc.keynote)}</div>` : ''}
       ${acts.length ? `<div class="gate-detail-acts">${acts.join('<br>')}</div>` : '<p class="gate-detail-inactive">Not activated in this chart.</p>'}
       ${desc ? `<p class="gate-detail-desc">${esc(desc.description)}</p>` : ''}
+      ${lineHtml ? `<div class="gate-detail-lines">${lineHtml}</div>` : ''}
       ${isActive && channelHtml ? channelHtml : ''}
       ${desc?.harmonic ? `<p class="gate-detail-harmonic">Harmonic gate: <button class="gate-link" data-gate="${desc.harmonic}">Gate ${desc.harmonic}</button>${chart.gates.all.includes(desc.harmonic) ? ' (active — channel formed)' : ' (open — you meet this energy in others)'}</p>` : ''}
     </div>
