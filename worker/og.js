@@ -6,21 +6,8 @@
  * Deterministic per params, so cached at the edge effectively forever.
  */
 
-import { Resvg, initWasm } from '@resvg/resvg-wasm';
-import resvgWasm from '@resvg/resvg-wasm/index_bg.wasm';
-import { calculateHumanDesign, renderChartCardSVG } from 'natalengine';
-
-import interRegular from './fonts/inter-regular.ttf';
-import interBold from './fonts/inter-bold.ttf';
-
-let wasmReady = null;
-function ensureWasm() {
-  if (!wasmReady) wasmReady = initWasm(resvgWasm).catch(err => {
-    wasmReady = null; // allow retry on transient failure
-    throw err;
-  });
-  return wasmReady;
-}
+import { calculateHumanDesign, renderChartCardSVG, renderBodygraphSVG } from 'natalengine';
+import { svgToPng } from './render.js';
 
 export function parseChartParams(searchParams) {
   const d = searchParams.get('d');
@@ -54,28 +41,51 @@ export async function handleOgImage(request) {
   const cached = await cache.match(cacheKey);
   if (cached) return cached;
 
-  await ensureWasm();
-
   const chart = computeForParams(params);
   const svg = renderChartCardSVG(chart, {
     name: params.name,
     theme: url.searchParams.get('theme') === 'dark' ? 'dark' : 'light',
     fontFamily: 'Inter'
   });
-
-  const resvg = new Resvg(svg, {
-    fitTo: { mode: 'width', value: 1200 },
-    font: {
-      fontBuffers: [new Uint8Array(interRegular), new Uint8Array(interBold)],
-      defaultFontFamily: 'Inter',
-      loadSystemFonts: false
-    }
-  });
-  const png = resvg.render().asPng();
+  const png = await svgToPng(svg, 1200);
 
   const response = new Response(png, {
     headers: {
       'content-type': 'image/png',
+      'cache-control': 'public, max-age=31536000, immutable'
+    }
+  });
+  await cache.put(cacheKey, response.clone());
+  return response;
+}
+
+/**
+ * Public bodygraph as SVG — /chart.svg?d=&t=&tz=&n=&theme=&columns=
+ * Pure string render (no rasterization), edge-cached. The scalable,
+ * crisp chart image; linked from MCP results and usable as an <img src>.
+ */
+export async function handleChartSvg(request) {
+  const url = new URL(request.url);
+  const params = parseChartParams(url.searchParams);
+  if (!params) {
+    return new Response('missing or invalid chart params (need ?d=YYYY-MM-DD)', { status: 400 });
+  }
+
+  const cache = caches.default;
+  const cacheKey = new Request(url.toString(), { method: 'GET' });
+  const cached = await cache.match(cacheKey);
+  if (cached) return cached;
+
+  const chart = computeForParams(params);
+  const svg = renderBodygraphSVG(chart, {
+    theme: url.searchParams.get('theme') === 'dark' ? 'dark' : 'light',
+    planetColumns: url.searchParams.get('columns') !== 'false',
+    fontFamily: 'Inter'
+  });
+
+  const response = new Response(svg, {
+    headers: {
+      'content-type': 'image/svg+xml; charset=utf-8',
       'cache-control': 'public, max-age=31536000, immutable'
     }
   });

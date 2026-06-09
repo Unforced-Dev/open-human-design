@@ -115,6 +115,31 @@ test('saved names rejected without auth props', async () => {
   assert.match(result.content[0].text, /personal connector|sign in/i);
 });
 
+test('compute_chart surfaces the bodygraph image (svg resource + link)', async () => {
+  // image:"svg" avoids the Worker-only rasterizer (PNG) so this runs under Node.
+  const result = await rpc('tools/call', {
+    name: 'compute_chart',
+    arguments: { birth: { birthDate: '1990-06-15', birthTime: '14:30', utcOffset: -6 }, image: 'svg' }
+  });
+  assert.equal(result.content[0].type, 'text'); // JSON data still first
+  const svgRes = result.content.find(c => c.type === 'resource');
+  assert.ok(svgRes, 'has an embedded resource');
+  assert.equal(svgRes.resource.mimeType, 'image/svg+xml');
+  assert.ok(svgRes.resource.text.startsWith('<svg'));
+  assert.ok(svgRes.resource.text.includes('data-gate'));
+  const link = result.content.find(c => c.type === 'text' && c.text.includes('/chart.svg?'));
+  assert.ok(link, 'includes an SVG link');
+});
+
+test('compute_chart image:"none" omits image content', async () => {
+  const result = await rpc('tools/call', {
+    name: 'compute_chart',
+    arguments: { birth: { birthDate: '1990-06-15', birthTime: '14:30', utcOffset: -6 }, image: 'none' }
+  });
+  assert.equal(result.content.length, 1);
+  assert.equal(result.content[0].type, 'text');
+});
+
 test('compute_chart with explicit offset', async () => {
   const out = await callTool('compute_chart', {
     birth: { birthDate: '1990-06-15', birthTime: '14:30', utcOffset: -6 }

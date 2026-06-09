@@ -27,7 +27,8 @@ import {
   GATE_DESCRIPTIONS,
   CHANNEL_DESCRIPTIONS,
   CENTERS,
-  GATES
+  GATES,
+  renderBodygraphSVG
 } from 'natalengine';
 
 // ---------------------------------------------------------------------------
@@ -257,6 +258,50 @@ function astroSummary(a) {
 const json = (obj) => ({ content: [{ type: 'text', text: JSON.stringify(obj, null, 1) }] });
 const errText = (msg) => ({ content: [{ type: 'text', text: `Error: ${msg}` }], isError: true });
 
+// Canonical public origin for the SVG chart link (the deployed domain).
+const PUBLIC_ORIGIN = 'https://openhumandesign.com';
+
+function chartLinkUrl(b) {
+  const p = new URLSearchParams();
+  p.set('d', b.birthDate);
+  if (!b.timeUnknown) p.set('t', b.birthTime);
+  p.set('tz', String(b.utcOffset));
+  if (b._savedName) p.set('n', b._savedName);
+  return `${PUBLIC_ORIGIN}/chart.svg?${p}`;
+}
+
+/**
+ * Build the chart-image content for a tool result.
+ * - "png": rasterized bodygraph (renders inline in Claude/ChatGPT — their
+ *   image blocks accept raster only). Default.
+ * - "svg": the scalable vector as an embedded resource (the requested
+ *   format; clients that render SVG show it crisp, others keep the data).
+ * - "both": both. A link to the public SVG is always appended.
+ */
+async function chartImageContent(chart, b, mode) {
+  if (mode === 'none') return [];
+  const svg = renderBodygraphSVG(chart, { theme: 'light', planetColumns: true, fontFamily: 'Inter' });
+  const link = chartLinkUrl(b);
+  const items = [];
+
+  if (mode === 'png' || mode === 'both') {
+    try {
+      // Rasterizer is Worker-only (static .wasm/.ttf imports) — load it
+      // lazily so the MCP module still imports under plain Node tests.
+      const { svgToPng, toBase64 } = await import('./render.js');
+      const png = await svgToPng(svg, 1000);
+      items.push({ type: 'image', data: toBase64(png), mimeType: 'image/png' });
+    } catch (e) {
+      items.push({ type: 'text', text: `(inline image unavailable: ${e.message})` });
+    }
+  }
+  if (mode === 'svg' || mode === 'both') {
+    items.push({ type: 'resource', resource: { uri: link, mimeType: 'image/svg+xml', text: svg } });
+  }
+  items.push({ type: 'text', text: `Bodygraph (scalable SVG): ${link}` });
+  return items;
+}
+
 function birthMeta(b) {
   return {
     ...(b._savedName ? { person: b._savedName } : {}),
@@ -272,7 +317,7 @@ function birthMeta(b) {
 const TOOLS = [
   {
     name: 'compute_chart',
-    description: 'Compute a chart from birth data. Human Design by default; add "gene_keys" and/or "astrology" to systems for those views of the same birth moment. One call returns the complete picture including interpretive keynotes — prefer detail:"summary" unless line/color/tone/base substructure is needed.',
+    description: 'Compute a chart from birth data and show the bodygraph image. Human Design by default; add "gene_keys" and/or "astrology" to systems for those views of the same birth moment. Returns the complete picture including interpretive keynotes plus the bodygraph image. The image renders inline as a raster (image:"png", default); set image:"svg" to embed the scalable vector instead, or "both". A link to the SVG is always included.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -282,11 +327,12 @@ const TOOLS = [
           items: { type: 'string', enum: ['human_design', 'gene_keys', 'astrology'] },
           description: 'Default ["human_design"]'
         },
-        detail: { type: 'string', enum: ['summary', 'full'], description: 'full adds per-planet color/tone/base substructure and gate keynotes' }
+        detail: { type: 'string', enum: ['summary', 'full'], description: 'full adds per-planet color/tone/base substructure and gate keynotes' },
+        image: { type: 'string', enum: ['none', 'png', 'svg', 'both'], description: 'Bodygraph image to include. "png" (default) renders inline; "svg" embeds the scalable vector; "both" includes each; "none" omits it. A link to the SVG is always added unless "none".' }
       },
       required: ['birth']
     },
-    async handler({ birth, systems = ['human_design'], detail = 'summary' }, ctx) {
+    async handler({ birth, systems = ['human_design'], detail = 'summary', image = 'png' }, ctx) {
       const b = await resolveBirth(birth, 'birth', ctx);
       const hd = calculateHumanDesign(b.birthDate, b.birthHour, b.utcOffset);
       const out = { ...birthMeta(b) };
@@ -297,7 +343,9 @@ const TOOLS = [
         const lon = birth.lon ?? b.placeNote?.lon ?? null;
         out.astrology = astroSummary(calculateAstrology(b.birthDate, b.birthHour, b.utcOffset, lat, lon));
       }
-      return json(out);
+      const base = json(out);
+      const img = await chartImageContent(hd, b, image);
+      return { content: [...base.content, ...img] };
     }
   },
   {

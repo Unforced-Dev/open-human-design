@@ -22,7 +22,7 @@ import { handleMcpRequest } from './mcp.js';
 import { createAuth, getSession } from './auth.js';
 import { handleSync } from './sync.js';
 import { handleAuthorize, verifyInterstitial } from './oauth-ui.js';
-import { handleOgImage, rewriteShareMeta } from './og.js';
+import { handleOgImage, handleChartSvg, rewriteShareMeta } from './og.js';
 
 const MCP_CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -66,6 +66,10 @@ const defaultHandler = {
 
     if (pathname === '/og/card.png') {
       return handleOgImage(request);
+    }
+
+    if (pathname === '/chart.svg') {
+      return handleChartSvg(request);
     }
 
     if (pathname === '/authorize') {
