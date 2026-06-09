@@ -10,10 +10,14 @@
 
 import {
   TYPES, PROFILES, AUTHORITIES, CENTERS, GATES,
-  GATE_DESCRIPTIONS, LINE_DESCRIPTIONS, CHANNEL_DESCRIPTIONS
+  GATE_DESCRIPTIONS, LINE_DESCRIPTIONS, CHANNEL_DESCRIPTIONS,
+  calculateHumanDesign
 } from 'natalengine';
+import { CELEBRITIES } from './celebrities.js';
 
 const ORIGIN = 'https://openhumandesign.com';
+const CELEB_BY_SLUG = Object.fromEntries(CELEBRITIES.map(c => [c.slug, c]));
+const NAME_TO_TYPESLUG = Object.fromEntries(Object.keys(TYPES).map(k => [TYPES[k].name, k]));
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -296,6 +300,87 @@ function profilePage(slug) {
   });
 }
 
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const formatDate = (d) => { const [y, mo, da] = d.split('-').map(Number); return `${MONTHS[mo - 1]} ${da}, ${y}`; };
+
+function celebrityPage(slug) {
+  const c = CELEB_BY_SLUG[slug];
+  if (!c) return null;
+  const [h, m] = c.birthTime.split(':').map(Number);
+  const chart = calculateHumanDesign(c.birthDate, h + (m || 0) / 60, c.utcOffset);
+  const tSlug = TYPE_SLUG_OF[NAME_TO_TYPESLUG[chart.type.name]] || 'generator';
+  const pSlug = profileSlug(chart.profile.numbers);
+  const cross = chart.incarnationCross?.name ? chart.incarnationCross.name.replace(/^The /, '') : null;
+  const svg = `/chart.svg?${new URLSearchParams({ d: c.birthDate, t: c.birthTime, tz: String(c.utcOffset), n: c.name })}`;
+  const compare = `/?${new URLSearchParams({ d: c.birthDate, t: c.birthTime, tz: String(c.utcOffset), n: c.name, connect: '1' })}`;
+  const srcUrl = (c.source.match(/https?:\/\/[^\s)]+/) || [])[0];
+  const idx = CELEBRITIES.findIndex(x => x.slug === slug);
+  const more = [...CELEBRITIES.slice(idx + 1), ...CELEBRITIES.slice(0, idx)].slice(0, 8);
+  const jsonld = {
+    '@context': 'https://schema.org', '@type': 'Person', name: c.name,
+    birthDate: c.birthDate, birthPlace: { '@type': 'Place', name: c.place },
+    url: `${ORIGIN}/celebrity/${slug}`
+  };
+  const body = `
+    <div style="text-align:center;margin:6px 0 18px"><img src="${svg}" alt="${esc(c.name)}'s Human Design bodygraph" loading="lazy" style="max-width:100%;width:420px;height:auto"></div>
+    <div class="factrow">
+      <span><b>Type</b> <a href="/type/${tSlug}">${esc(chart.type.name)}</a></span>
+      <span><b>Authority</b> ${esc(chart.authority.name)}</span>
+      <span><b>Profile</b> <a href="/profile/${pSlug}">${esc(chart.profile.numbers)} ${esc(chart.profile.name || '')}</a></span>
+      <span><b>Definition</b> ${esc(chart.definition)}</span>
+    </div>
+    <p class="lede">${esc(c.name)} is a <a href="/type/${tSlug}">${esc(chart.type.name)}</a> with ${esc(chart.authority.name)} and the <a href="/profile/${pSlug}">${esc(chart.profile.numbers)} ${esc(chart.profile.name || '')}</a> profile.${cross ? ` The incarnation cross is the Cross of ${esc(cross)}.` : ''}</p>
+    <div class="cta" style="margin:18px 0 0">
+      <strong>Compare your chart with ${esc(c.name)}</strong>
+      <div>See your electromagnetic, companionship and dominance connections — free, in seconds.</div>
+      <a href="${compare}">Compare my design with ${esc(c.name)}</a>
+    </div>
+    <h2>Birth data</h2>
+    <div class="factrow">
+      <span><b>Born</b> ${esc(formatDate(c.birthDate))} at ${esc(c.birthTime)}</span>
+      <span><b>Place</b> ${esc(c.place)}</span>
+      <span><b>Rodden rating</b> ${esc(c.rodden)}</span>
+    </div>
+    <p style="font-size:14px;color:var(--soft)">Birth data Rodden-rated <b>${esc(c.rodden)}</b>${srcUrl ? ` · <a href="${esc(srcUrl)}" rel="nofollow noopener" target="_blank">source</a>` : ''}. Human Design is time-sensitive — this chart reflects the recorded birth time above.</p>
+    <h2>More celebrity charts</h2>
+    <div class="grid">${more.map(x => `<a href="/celebrity/${x.slug}">${esc(x.name)}</a>`).join('')}</div>
+    <p style="margin-top:14px"><a href="/celebrity">All celebrity Human Design charts →</a></p>
+    <script type="application/ld+json">${JSON.stringify(jsonld)}</script>`;
+  return shell({
+    title: `${c.name}'s Human Design Chart — ${chart.type.name} ${chart.profile.numbers}`,
+    description: `${c.name} is a ${chart.type.name} (${chart.profile.numbers} profile, ${chart.authority.name}). See the full bodygraph and compare it with your own chart — free.`,
+    path: `/celebrity/${slug}`,
+    h1: `${c.name}'s Human Design`,
+    kicker: `${chart.type.name} · ${chart.profile.numbers} · ${chart.authority.name}`,
+    breadcrumb: `<a href="/human-design">Human Design</a> › <a href="/celebrity">Celebrities</a> › ${esc(c.name)}`,
+    body
+  });
+}
+
+function celebrityIndexPage() {
+  const items = CELEBRITIES.map(c => {
+    const [h, m] = c.birthTime.split(':').map(Number);
+    const chart = calculateHumanDesign(c.birthDate, h + (m || 0) / 60, c.utcOffset);
+    return { c, type: chart.type.name, profile: chart.profile.numbers };
+  });
+  const byType = {};
+  for (const it of items) (byType[it.type] = byType[it.type] || []).push(it);
+  const body = `
+    <p class="lede">Human Design charts for ${CELEBRITIES.length} well-known people — birth data verified against Astro-Databank, with only reliable birth times published. Tap any name for the full bodygraph, or compare them with your own chart.</p>
+    ${Object.keys(byType).sort().map(t => `
+      <h2>${esc(t)}s</h2>
+      <div class="grid">${byType[t].sort((a, b) => a.c.name.localeCompare(b.c.name)).map(it => `<a href="/celebrity/${it.c.slug}">${esc(it.c.name)} · ${esc(it.profile)}</a>`).join('')}</div>`).join('')}`;
+  return shell({
+    title: 'Celebrity Human Design charts — verified birth data',
+    description: `Human Design charts for ${CELEBRITIES.length} famous people — Einstein, Bowie, Beyoncé, Obama and more — with verified birth data. Compare any with your own, free.`,
+    path: '/celebrity',
+    h1: 'Celebrity Human Design charts',
+    kicker: 'Verified birth data · compare with your own',
+    breadcrumb: `<a href="/human-design">Human Design</a> › Celebrities`,
+    body
+  });
+}
+
 function hubPage() {
   const types = Object.keys(TYPES).map(k => `<a href="/type/${TYPE_SLUG_OF[k]}">${esc(TYPES[k].name)}</a>`).join('');
   const centers = CENTER_ORDER.map(c => `<a href="/center/${c}">${esc(CENTER_NAME(c))}</a>`).join('');
@@ -304,6 +389,7 @@ function hubPage() {
   const channels = Object.keys(CHANNEL_DESCRIPTIONS).sort().map(k => `<a href="/channel/${k}">${k}</a>`).join('');
   const body = `
     <p class="lede">A free, open reference to the Human Design system — every type, center, profile, gate and channel, with original interpretations and all 384 line meanings. Then compute your own chart in seconds.</p>
+    <p><a href="/celebrity">Browse Human Design charts for ${CELEBRITIES.length} well-known people →</a></p>
     <h2 id="types">The five types</h2><div class="grid">${types}</div>
     <h2 id="centers">The nine centers</h2><div class="grid">${centers}</div>
     <h2 id="profiles">The twelve profiles</h2><div class="grid">${profiles}</div>
@@ -325,6 +411,8 @@ export async function handleSeoPage(request) {
   const p = url.pathname.replace(/\/$/, '') || '/';
   let html = null, m;
   if (p === '/human-design') html = hubPage();
+  else if (p === '/celebrity') html = celebrityIndexPage();
+  else if ((m = p.match(/^\/celebrity\/([a-z0-9-]+)$/))) html = celebrityPage(m[1]);
   else if ((m = p.match(/^\/gate\/(\d{1,2})$/))) html = gatePage(+m[1]);
   else if ((m = p.match(/^\/type\/([a-z-]+)$/))) html = typePage(m[1]);
   else if ((m = p.match(/^\/center\/([a-z]+)$/))) html = centerPage(m[1]);
@@ -343,12 +431,13 @@ export async function handleSeoPage(request) {
 
 export function handleSitemap() {
   const urls = [
-    '/', '/human-design',
+    '/', '/human-design', '/celebrity',
     ...Object.keys(TYPES).map(k => `/type/${TYPE_SLUG_OF[k]}`),
     ...CENTER_ORDER.map(c => `/center/${c}`),
     ...PROFILE_KEYS.map(k => `/profile/${profileSlug(k)}`),
     ...Array.from({ length: 64 }, (_, i) => `/gate/${i + 1}`),
-    ...Object.keys(CHANNEL_DESCRIPTIONS).map(k => `/channel/${k}`)
+    ...Object.keys(CHANNEL_DESCRIPTIONS).map(k => `/channel/${k}`),
+    ...CELEBRITIES.map(c => `/celebrity/${c.slug}`)
   ];
   const body = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

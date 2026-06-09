@@ -15,7 +15,7 @@
     // without this, magic-link verify and OAuth consent serve the SPA
     // shell and the whole account/AI feature is dead in real browsers
     // (curl tests pass because they don't send navigation headers).
-    "run_worker_first": ["/", "/og/*", "/chart.svg", "/api/*", "/auth/*", "/authorize", "/oauth/*", "/mcp", "/.well-known/*", "/human-design", "/gate/*", "/type/*", "/center/*", "/channel/*", "/profile/*", "/sitemap.xml", "/robots.txt"]
+    "run_worker_first": ["/", "/og/*", "/chart.svg", "/api/*", "/auth/*", "/authorize", "/oauth/*", "/mcp", "/.well-known/*", "/human-design", "/celebrity", "/celebrity/*", "/gate/*", "/type/*", "/center/*", "/channel/*", "/profile/*", "/sitemap.xml", "/robots.txt"]
   },
   "workers_dev": true,
   "routes": [
