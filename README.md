@@ -54,14 +54,17 @@ tools arrive with optional accounts (see `docs/PLATFORM.md`).
 git clone https://github.com/Unforced-Dev/open-human-design
 cd open-human-design
 npm install        # natalengine comes from npm
-npm run dev
+npm run dev        # → http://localhost:5174
 ```
 
 ```bash
 npm test       # unit tests
-npm run e2e    # browser smoke test (dev server must be running)
+npm run e2e    # browser smoke test (run `npm run dev` first — shares port 5174)
 npm run build  # production build
 ```
+
+New contributor? See **[CONTRIBUTING.md](CONTRIBUTING.md)** for the full setup, the branch + PR
+workflow, and what does (and doesn't) need Cloudflare access — front-end work needs none.
 
 Powered by [NatalEngine](https://github.com/Unforced-Dev/natalengine) — an open, MIT-licensed
 birth chart engine for Human Design, Western astrology, Vedic astrology, and Gene Keys, with an
