@@ -28,6 +28,8 @@ import { birthToParams, connectionUrl } from '../lib/share.js';
 
 let current = null; // { birth, chart, geneKeys }
 let bodygraphApi = null;
+let detailHistory = []; // stack of { kind, id } for modal back-navigation
+let currentDetail = null;
 
 const TYPE_COLORS = {
   'Generator': 'var(--generator)',
@@ -62,7 +64,8 @@ export function renderChartView(data, { onShare } = {}) {
   ].filter(Boolean).join(' · ');
 
   banner.innerHTML = `
-    <div class="type-name" style="color: ${TYPE_COLORS[chart.type.name] || 'var(--text)'}">${who}${esc(chart.type.name)}</div>
+    <div class="type-name">${who.replace(' — ', '')}</div>
+    <div><span class="type-badge">${esc(chart.type.name)}</span></div>
     <div class="type-detail">${esc(chart.profile.numbers)} ${esc(chart.profile.name)} · ${esc(chart.authority.name)} · ${esc(chart.definition)}</div>
     <div class="type-birthline">${esc(birthLine)}${birth.timeUnknown ? ' · <em>time unknown — chart uses noon</em>' : ''}</div>
     <div class="type-strategy">Strategy: ${esc(chart.type.strategy)}</div>
@@ -130,6 +133,15 @@ export function renderChartView(data, { onShare } = {}) {
   renderFoundation(chart, data.sensitivity, birth);
   const activeTab = document.querySelector('.panel-tab.active');
   renderPanelContent(activeTab ? activeTab.dataset.panel : 'centers');
+
+  // --- Modal close: backdrop click + ESC ---
+  const detail = document.getElementById('gate-detail');
+  detail.addEventListener('click', (e) => {
+    if (e.target === detail) closeDetail();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !detail.classList.contains('hidden')) closeDetail();
+  });
 }
 
 export function rerenderBodygraph(transitGates = null) {
@@ -312,10 +324,58 @@ function renderLens(gateNum) {
     ${lineHtml ? `<div class="gate-detail-lines">${lineHtml}</div>` : ''}`;
 }
 
-export function showGateDetail(gateNum) {
+function closeDetail() {
+  const detail = document.getElementById('gate-detail');
+  detail.classList.add('hidden');
+  document.body.classList.remove('modal-open');
+  bodygraphApi?.setPinned?.(null);
+  detailHistory = [];
+  currentDetail = null;
+}
+
+function goBack() {
+  const prev = detailHistory.pop();
+  if (!prev) return closeDetail();
+  if (prev.kind === 'gate') showGateDetail(prev.id, false);
+  else showCenterDetail(prev.id, false);
+}
+
+function detailNav() {
+  const backBtn = detailHistory.length > 0
+    ? `<button class="gate-detail-back">← Back</button>`
+    : `<span></span>`;
+  return `
+    <span class="gate-detail-handle" aria-hidden="true"></span>
+    <div class="gate-detail-nav-buttons">
+      ${backBtn}
+      <button class="gate-detail-close" title="Close">&times;</button>
+    </div>`;
+}
+
+function fitSheetHeight(card, prevH = null) {
+  if (window.innerWidth > 768) return;
+  const maxH = window.innerHeight * 0.82;
+  const minH = window.innerHeight * 0.35;
+  const navH = card.querySelector('.gate-detail-nav')?.offsetHeight ?? 0;
+  const bodyH = card.querySelector('.gate-detail-body')?.scrollHeight ?? card.scrollHeight;
+  const targetH = Math.min(Math.max(navH + bodyH + 20, minH), maxH);
+  if (prevH != null) {
+    card.style.transition = 'none';
+    card.style.height = prevH + 'px';
+    card.offsetHeight; // force reflow
+    card.style.transition = 'height 260ms cubic-bezier(0.4, 0, 0.2, 1)';
+  }
+  card.style.height = targetH + 'px';
+}
+
+export function showGateDetail(gateNum, pushHistory = true) {
   if (!current) return;
+  if (pushHistory && currentDetail) detailHistory.push(currentDetail);
+  currentDetail = { kind: 'gate', id: gateNum };
   const { chart } = current;
   const detail = document.getElementById('gate-detail');
+  const prevH = !detail.classList.contains('hidden') && window.innerWidth <= 768
+    ? detail.querySelector('.gate-detail-card')?.offsetHeight ?? null : null;
   const desc = GATE_DESCRIPTIONS[gateNum];
   const gate = GATES[gateNum];
 
@@ -344,24 +404,24 @@ export function showGateDetail(gateNum) {
   const isActive = acts.length > 0;
   detail.innerHTML = `
     <div class="gate-detail-card">
-      <button class="gate-detail-close" title="Close">&times;</button>
-      <div class="panel-title">Gate ${gateNum}${gate ? ' — ' + esc(gate.name) : ''}</div>
-      ${acts.length ? `<div class="gate-detail-acts">${acts.join('<br>')}</div>` : '<p class="gate-detail-inactive">Not activated in this chart.</p>'}
-      <div class="lens-switch">${LENSES.map(([k, label]) => `<button type="button" data-lens="${k}" class="${k === currentLens ? 'active' : ''}">${label}</button>`).join('')}</div>
-      <div id="lens-content">${renderLens(gateNum)}</div>
-      ${isActive && channelHtml ? channelHtml : ''}
-      ${desc?.harmonic ? `<p class="gate-detail-harmonic">Harmonic gate: <button class="gate-link" data-gate="${desc.harmonic}">Gate ${desc.harmonic}</button>${chart.gates.all.includes(desc.harmonic) ? ' (active — channel formed)' : ' (open — you meet this energy in others)'}</p>` : ''}
+      <div class="gate-detail-nav">${detailNav()}</div>
+      <div class="gate-detail-body">
+        <div class="detail-label">Gate ${gateNum}</div>
+        <div class="detail-name">${gate ? esc(gate.name) : 'Gate ' + gateNum}</div>
+        ${acts.length ? `<div class="gate-detail-acts">${acts.join('<br>')}</div>` : '<p class="gate-detail-inactive">Not activated in this chart.</p>'}
+        <div class="lens-switch">${LENSES.map(([k, label]) => `<button type="button" data-lens="${k}" class="${k === currentLens ? 'active' : ''}">${label}</button>`).join('')}</div>
+        <div id="lens-content">${renderLens(gateNum)}</div>
+        ${isActive && channelHtml ? channelHtml : ''}
+        ${desc?.harmonic ? `<p class="gate-detail-harmonic">Harmonic gate: <button class="gate-link" data-gate="${desc.harmonic}">Gate ${desc.harmonic}</button>${chart.gates.all.includes(desc.harmonic) ? ' (active — channel formed)' : ' (open — you meet this energy in others)'}</p>` : ''}
+      </div>
     </div>
   `;
   detail.classList.remove('hidden');
-  // Keep this gate lit on the bodygraph the whole time its card is open, so the
-  // chart and the reading stay tethered (whether the click came from the graph
-  // or from a data row).
+  document.body.classList.add('modal-open');
+  fitSheetHeight(detail.querySelector('.gate-detail-card'), prevH);
   bodygraphApi?.setPinned?.({ kind: 'gate', id: gateNum });
-  detail.querySelector('.gate-detail-close').addEventListener('click', () => {
-    detail.classList.add('hidden');
-    bodygraphApi?.setPinned?.(null);
-  });
+  detail.querySelector('.gate-detail-back')?.addEventListener('click', goBack);
+  detail.querySelector('.gate-detail-close').addEventListener('click', closeDetail);
   detail.querySelectorAll('.lens-switch button').forEach(btn => btn.addEventListener('click', () => {
     currentLens = btn.dataset.lens;
     detail.querySelectorAll('.lens-switch button').forEach(b => b.classList.toggle('active', b.dataset.lens === currentLens));
@@ -369,8 +429,6 @@ export function showGateDetail(gateNum) {
   }));
   detail.querySelectorAll('.gate-link').forEach(btn =>
     btn.addEventListener('click', () => showGateDetail(parseInt(btn.dataset.gate))));
-  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  detail.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' });
   detail.querySelector('.gate-detail-close')?.focus({ preventScroll: true });
 }
 
@@ -387,12 +445,16 @@ function centerObjects() {
   return map;
 }
 
-export function showCenterDetail(centerKey) {
+export function showCenterDetail(centerKey, pushHistory = true) {
   if (!current) return;
+  if (pushHistory && currentDetail) detailHistory.push(currentDetail);
+  currentDetail = { kind: 'center', id: centerKey };
   const { chart } = current;
   const c = centerObjects()[centerKey];
   if (!c) return;
   const detail = document.getElementById('gate-detail');
+  const prevH = !detail.classList.contains('hidden') && window.innerWidth <= 768
+    ? detail.querySelector('.gate-detail-card')?.offsetHeight ?? null : null;
   const status = c.status;
   const statusLabel = status.charAt(0).toUpperCase() + status.slice(1);
   const meaning = status === 'defined' ? (c.definedMeaning || c.pressure)
@@ -422,34 +484,34 @@ export function showCenterDetail(centerKey) {
 
   detail.innerHTML = `
     <div class="gate-detail-card center-detail-card" data-center="${centerKey}">
-      <button class="gate-detail-close" title="Close">&times;</button>
-      <div class="panel-title">${esc(c.name)} Center</div>
-      <div class="center-detail-head">
-        <span class="center-status ${status}">${statusLabel}</span>
-        <span class="center-detail-theme">${esc(c.theme || '')}${c.biological ? ` · ${esc(c.biological)}` : ''}</span>
+      <div class="gate-detail-nav">${detailNav()}</div>
+      <div class="gate-detail-body">
+        <div class="detail-label">${esc(c.name)}</div>
+        <div class="detail-name">${esc(c.theme || c.name)}</div>
+        <div class="center-detail-head">
+          <span class="center-status ${status}">${statusLabel}</span>
+          <span class="center-detail-theme">${esc(c.theme || '')}${c.biological ? ` · ${esc(c.biological)}` : ''}</span>
+        </div>
+        <p class="gate-detail-desc">${esc(meaning || '')}</p>
+        ${status !== 'defined' && c.notSelfQuestion ? `<p class="center-notself">${esc(c.notSelfQuestion)}</p>` : ''}
+        <div class="center-detail-section">
+          <span class="cd-label">Gates here</span>
+          <div class="gate-chip-row">${gateChips}</div>
+        </div>
+        ${channelHtml}
       </div>
-      <p class="gate-detail-desc">${esc(meaning || '')}</p>
-      ${status !== 'defined' && c.notSelfQuestion ? `<p class="center-notself">${esc(c.notSelfQuestion)}</p>` : ''}
-      <div class="center-detail-section">
-        <span class="cd-label">Gates here</span>
-        <div class="gate-chip-row">${gateChips}</div>
-      </div>
-      ${channelHtml}
     </div>
   `;
   detail.classList.remove('hidden');
-  // Keep the center lit on the bodygraph the whole time its card is open.
+  document.body.classList.add('modal-open');
+  fitSheetHeight(detail.querySelector('.gate-detail-card'), prevH);
   bodygraphApi?.setPinned?.({ kind: 'center', id: centerKey });
-  detail.querySelector('.gate-detail-close').addEventListener('click', () => {
-    detail.classList.add('hidden');
-    bodygraphApi?.setPinned?.(null);
-  });
+  detail.querySelector('.gate-detail-back')?.addEventListener('click', goBack);
+  detail.querySelector('.gate-detail-close').addEventListener('click', closeDetail);
   detail.querySelectorAll('.gate-chip[data-gate]').forEach(btn => {
     btn.addEventListener('click', () => showGateDetail(parseInt(btn.dataset.gate)));
     wireRowHover(btn, parseInt(btn.dataset.gate));
   });
-  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  detail.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' });
   detail.querySelector('.gate-detail-close')?.focus({ preventScroll: true });
 }
 

@@ -57,6 +57,9 @@
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.06);
   --shadow: 0 2px 8px rgba(0,0,0,0.08);
   --shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
+
+  /* Modal */
+  --modal-backdrop: rgba(15, 12, 8, 0.45);
 }
 
 /* Dark mode */
@@ -81,6 +84,7 @@
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.2);
   --shadow: 0 2px 8px rgba(0,0,0,0.3);
   --shadow-lg: 0 8px 24px rgba(0,0,0,0.4);
+  --modal-backdrop: rgba(0, 0, 0, 0.65);
 }
 
 /* =============================================
@@ -311,7 +315,28 @@ body {
   font-family: var(--font-serif);
   font-size: 32px;
   font-weight: 300;
-  margin-bottom: 4px;
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+
+.type-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: #f7e8ef;
+  color: #8a2850;
+  border: 0.5px solid #d898b8;
+  border-radius: 20px;
+  padding: 4px 14px;
+  margin-bottom: 8px;
+}
+
+[data-theme="dark"] .type-badge {
+  background: #2a1520;
+  color: #d47898;
+  border-color: #582840;
 }
 
 .type-banner .type-detail {
@@ -359,6 +384,26 @@ body {
   border-radius: var(--radius-lg);
   padding: 24px;
   box-shadow: var(--shadow-lg);
+}
+
+[data-theme="dark"] .bodygraph-container {
+  background: var(--bg-sunken);
+}
+
+/* Dark mode: give all inner cards a distinct surface so they read
+   as objects floating above the panel background. */
+[data-theme="dark"] .center-card,
+[data-theme="dark"] .foundation-item,
+[data-theme="dark"] .channel-item,
+[data-theme="dark"] .gate-item {
+  background: var(--bg);
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .center-card:hover,
+[data-theme="dark"] .channel-item:hover,
+[data-theme="dark"] .gate-item:hover {
+  background: var(--bg-elevated);
 }
 
 .bodygraph-container svg {
@@ -447,13 +492,14 @@ body {
 .foundation-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 20px;
 }
 
 .foundation-item {
-  padding: 14px;
+  padding: 16px;
   border-radius: var(--radius);
   background: var(--bg-sunken);
+  border: 1px solid var(--border-subtle);
 }
 
 .foundation-item .label {
@@ -481,19 +527,19 @@ body {
    ============================================= */
 
 .center-card {
-  padding: 14px;
+  padding: 16px;
   border-radius: var(--radius);
   border: 1px solid var(--border-subtle);
-  margin-bottom: 8px;
+  margin-bottom: 12px;
   cursor: pointer;
   transition: background 0.12s, box-shadow 0.12s;
 }
 .center-card:hover { background: var(--bg-sunken); }
 .center-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-.center-card.defined { border-left: 3px solid var(--accent); }
-.center-card.undefined { border-left: 3px solid var(--text-tertiary); }
-.center-card.open { border-left: 3px solid var(--border); opacity: 0.8; }
+.center-card.defined { border-left: 4px solid var(--accent); }
+.center-card.undefined { border-left: 4px solid var(--text-tertiary); }
+.center-card.open { border-left: 4px solid var(--border); opacity: 0.8; }
 
 .center-card .center-name {
   font-weight: 600;
@@ -524,10 +570,10 @@ body {
    ============================================= */
 
 .channel-item, .gate-item {
-  padding: 12px 14px;
+  padding: 14px 16px;
   border-radius: var(--radius);
   border: 1px solid var(--border-subtle);
-  margin-bottom: 6px;
+  margin-bottom: 10px;
   cursor: default;
   transition: background 0.1s;
 }
@@ -903,7 +949,7 @@ body {
 /* Hover highlight: dim everything, then re-light the hovered gate/channel */
 .bodygraph-svg.bg-dimmed .bg-gate-path,
 .bodygraph-svg.bg-dimmed .bg-gate-circle {
-  opacity: 0.25;
+  opacity: 0.18;
   transition: opacity 0.12s;
 }
 
@@ -915,7 +961,7 @@ body {
 /* Relational highlight reaches the centers too: when a gate (and its channel)
    lights up, the center(s) it touches stay lit while the rest settle back. */
 .bodygraph-svg .bg-center { transition: opacity 0.12s; }
-.bodygraph-svg.bg-dimmed .bg-center:not(.bg-lit) { opacity: 0.5; }
+.bodygraph-svg.bg-dimmed .bg-center:not(.bg-lit) { opacity: 0.35; }
 
 .bg-tooltip {
   position: absolute;
@@ -1273,31 +1319,121 @@ body {
 .entry-invite strong { color: var(--accent-strong); }
 
 /* =============================================
+   Gate detail — modal overlay (all screen sizes)
+   Mobile @media overrides to bottom sheet.
+   ============================================= */
+
+body.modal-open { overflow: hidden; }
+
+.gate-detail:not(.hidden) {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--modal-backdrop);
+  padding: 24px;
+  overflow-y: auto;
+}
+
+.gate-detail:not(.hidden) .gate-detail-card {
+  max-width: 540px;
+  width: 100%;
+  max-height: 82vh;
+  margin: auto;
+}
+
+/* =============================================
    Gate detail card
    ============================================= */
 
 .gate-detail-card {
-  position: relative;
   background: var(--bg-elevated);
   border: 1px solid var(--accent);
   border-radius: var(--radius-lg);
-  padding: 20px 24px;
   margin-bottom: 16px;
   box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
+
+/* Nav row: drag handle + pill buttons */
+.gate-detail-nav {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.gate-detail-handle {
+  display: none;
+  width: 36px;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  margin: 10px auto 4px;
+}
+
+.gate-detail-nav-buttons {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px 8px;
+}
+
+.gate-detail-back {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 13px;
+  font-family: var(--font);
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 5px 12px;
+}
+.gate-detail-back:hover { color: var(--text); border-color: var(--text-secondary); }
 
 .gate-detail-close {
-  position: absolute;
-  top: 10px;
-  right: 14px;
-  background: none;
-  border: none;
-  font-size: 20px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 17px;
+  line-height: 1;
   color: var(--text-tertiary);
   cursor: pointer;
+  padding: 3px 8px;
+  flex-shrink: 0;
+}
+.gate-detail-close:hover { color: var(--text); border-color: var(--text-secondary); }
+
+/* Title hierarchy: accent label + large name */
+.detail-label {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 4px;
 }
 
-.gate-detail-close:hover { color: var(--text); }
+.detail-name {
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.2;
+  margin-bottom: 10px;
+}
+
+/* Scrollable content area below the header bar */
+.gate-detail-body {
+  padding: 16px 24px 20px;
+  overflow-y: auto;
+  flex: 1;
+}
 
 .gate-detail-keynote {
   font-family: var(--font-serif);
@@ -1867,6 +2003,27 @@ body {
       "date date"
       "time time"
       "place place";
+  }
+
+  /* Override base modal → bottom sheet on narrow screens */
+  .gate-detail:not(.hidden) {
+    align-items: flex-end;
+    padding: 0;
+    -webkit-overflow-scrolling: touch;
+  }
+  .gate-detail:not(.hidden) .gate-detail-card {
+    max-width: 100%;
+    height: 60vh; /* default; JS overrides with animated value */
+    border-radius: 14px 14px 0 0;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+    margin: 0;
+    transition: height 260ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .gate-detail-handle { display: block; }
+  .gate-detail-body {
+    padding-bottom: max(20px, env(safe-area-inset-bottom));
   }
 }
 

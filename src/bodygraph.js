@@ -57,10 +57,11 @@ const CENTER_COLORS_LIGHT = {
   g: '#e9d56b', heart: '#dd6356', spleen: '#c2a06b',
   solar: '#c2a06b', sacral: '#dd6356', root: '#c2a06b'
 };
+// Vivid palette for dark mode: saturated hues that pop against near-black.
 const CENTER_COLORS_DARK = {
-  head: '#bfa94e', ajna: '#7a9c52', throat: '#9c7f53',
-  g: '#bfa94e', heart: '#b54a40', spleen: '#9c7f53',
-  solar: '#9c7f53', sacral: '#b54a40', root: '#9c7f53'
+  head: '#f0c040', ajna: '#5ebd6e', throat: '#c4884a',
+  g: '#f0c040', heart: '#e74c3c', spleen: '#c4884a',
+  solar: '#c4884a', sacral: '#e74c3c', root: '#c4884a'
 };
 const centerColors = () => isDark() ? CENTER_COLORS_DARK : CENTER_COLORS_LIGHT;
 
@@ -87,11 +88,11 @@ for (const ch of CHANNELS) {
 function palette() {
   const dark = isDark();
   return {
-    personality: dark ? '#cfc7bb' : '#262220',
-    design: dark ? '#e05545' : '#c0392b',
-    inactive: dark ? '#28241f' : '#eae5df',
-    undefinedCenter: dark ? '#1e1c18' : '#ffffff',
-    centerStroke: dark ? '#3a3630' : '#cfc7be',
+    personality: dark ? '#f5f0e8' : '#262220',
+    design: dark ? '#e74c3c' : '#c0392b',
+    inactive: dark ? '#8c847a' : '#b8b0a6',
+    undefinedCenter: dark ? '#0d0c0a' : '#ffffff',
+    centerStroke: dark ? '#5a5248' : '#c0b8ae',
     text: dark ? '#e8e4de' : '#1a1714',
     textInactive: dark ? '#6f685f' : '#a39a90',
     transit: dark ? '#d4943a' : '#c47a2a'
@@ -230,7 +231,7 @@ export function renderBodygraph(container, chart, opts = {}) {
     const b = Math.min(255, (n & 255) + Math.round(255 * amt));
     return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
   };
-  const coreAmt = isDark() ? 0.13 : 0.17;
+  const coreAmt = isDark() ? 0.08 : 0.17;
   if (!composite) {
     for (const [key, color] of Object.entries(centerColors())) {
       const grad = svgEl('radialGradient', { id: `bg-cg-${key}`, cx: '0.5', cy: '0.36', r: '0.78' });
@@ -293,10 +294,11 @@ export function renderBodygraph(container, chart, opts = {}) {
   for (const [gateStr, pathData] of Object.entries(GATE_PATHS)) {
     const gateNum = parseInt(gateStr);
     const isActive = activeGates.has(gateNum);
+    const inactiveOpacity = isDark() ? '0.55' : '0.38';
     const path = svgEl('path', {
       d: pathData,
       fill: gateFill(gateNum),
-      opacity: isActive ? '1' : '0.14',
+      opacity: isActive ? '1' : inactiveOpacity,
       'data-gate': gateNum,
       class: 'bg-gate-path'
     });
@@ -318,7 +320,7 @@ export function renderBodygraph(container, chart, opts = {}) {
       d: shapeData.path,
       fill: centerFill(centerKey, defined),
       stroke: defined ? 'none' : colors.centerStroke,
-      'stroke-width': '1.5',
+      'stroke-width': '2',
       'data-center': centerKey,
       class: 'bg-center'
     });
@@ -357,11 +359,12 @@ export function renderBodygraph(container, chart, opts = {}) {
         fill: 'transparent', stroke: 'none', class: 'bg-gate-hit'
       }));
     }
+    const inactiveCircleOpacity = isDark() ? '0.55' : '0.42';
     g.appendChild(svgEl('circle', {
       cx: c.cx, cy: c.cy, r: c.r || 12.3,
-      fill: isActive ? fill : 'transparent',
-      stroke: isActive ? 'none' : colors.inactive,
-      'stroke-width': '1',
+      fill: isActive ? fill : colors.inactive,
+      'fill-opacity': isActive ? '1' : inactiveCircleOpacity,
+      stroke: 'none',
       class: 'bg-gate-circle'
     }));
     if (transitGates.has(gateNum)) {
