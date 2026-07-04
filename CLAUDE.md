@@ -10,18 +10,25 @@ account/tracking — local-first.
 ## Commands
 
 ```bash
-npm run dev      # Start Vite dev server
+npm run dev      # Start Vite dev server (http://localhost:5174)
 npm run build    # Build for production
 npm run preview  # Preview production build
 npm test         # Unit tests incl. MCP server (node --test; hits Open-Meteo)
-npm run e2e      # Browser smoke test (needs dev server running + Chrome)
-npx wrangler dev # Worker locally: SPA + /mcp (build first)
-npx wrangler deploy  # Deploy to Cloudflare (needs wrangler login)
+npm run e2e      # Browser smoke test (run `npm run dev` first — shares port 5174 + Chrome)
+npx wrangler dev # Worker locally: SPA + /mcp (build first; needs .dev.vars)
+npx wrangler deploy  # Deploy to Cloudflare (needs wrangler login / scoped token)
 ```
+
+## Contributing & workflow
+
+See **`CONTRIBUTING.md`** for new-contributor onboarding. Work on **feature branches + PRs** — do
+not commit to `main` directly. Merging to `main` auto-deploys the GitHub Pages preview; the
+production Cloudflare deploy is run manually. Keep `npm test` + `npm run e2e` green before a PR.
+Front-end work (everything in `src/`) needs **no Cloudflare access**; only `worker/` work does.
 
 ## Setup & hosting
 
-`natalengine` comes from npm (`^1.3.0`). For engine development, clone
+`natalengine` comes from npm (`^1.6.0`). For engine development, clone
 [Unforced-Dev/natal-engine](https://github.com/Unforced-Dev/natalengine) as a sibling and
 `npm link`/`file:` it temporarily — but published versions are the default.
 
@@ -74,7 +81,7 @@ Single-page app, 4 views. State lives in main.js (`currentData`); views read it 
 
 ## Dependencies
 
-- `natalengine` (npm `^1.3.0`) — all calculation (incl. pure SVG renderers); audited against 5 reference charts
+- `natalengine` (npm `^1.6.0`) — all calculation (incl. pure SVG renderers); audited against 5 reference charts
 - `vite` — build; `playwright-core` — e2e (drives system Chrome)
 
 ## Design System
