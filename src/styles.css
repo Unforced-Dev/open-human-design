@@ -694,16 +694,29 @@ body {
   display: flex;
   align-items: flex-end;
   gap: 8px;
-  margin-bottom: 24px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
 }
 
-.transit-date-picker label {
+.transit-date-picker label:not(.transit-precision) {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
   font-size: 12px;
   font-weight: 500;
   color: var(--text-secondary);
 }
 
-.transit-date-picker input {
+.transit-date-picker input:not([type="checkbox"]),
+.transit-date-picker select,
+.transit-date-picker > button {
+  box-sizing: border-box;
+  height: 40px;
+  line-height: 20px;
+}
+
+.transit-date-picker input:not([type="checkbox"]),
+.transit-date-picker select {
   padding: 8px 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -712,6 +725,88 @@ body {
   background: var(--bg-elevated);
   color: var(--text);
 }
+
+#transit-timezone { width: 210px; max-width: 100%; }
+.transit-time-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.transit-time-group {
+  display: flex;
+  height: 40px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  overflow: hidden;
+}
+.transit-time-group:focus-within {
+  border-color: var(--accent);
+}
+.transit-time-group #transit-time {
+  height: 100%;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  outline: none;
+}
+.transit-precision {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border-left: 1px solid var(--border);
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.transit-precision:hover { background: var(--bg-sunken); }
+.transit-precision:has(input:checked) {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.transit-precision input { margin: 0; }
+
+/* Keep the picker in the same theme as the existing place-search menu.
+   Browsers without customizable selects retain their native picker. */
+@supports (appearance: base-select) {
+  #transit-timezone,
+  #transit-timezone::picker(select) {
+    appearance: base-select;
+  }
+  #transit-timezone { font-weight: 400; }
+
+  #transit-timezone::picker(select) {
+    margin-top: 4px;
+    max-height: 240px;
+    overflow-y: auto;
+    background: var(--bg-elevated);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-lg);
+    font: 13px var(--font);
+  }
+
+  #transit-timezone option {
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  #transit-timezone option:last-child { border-bottom: none; }
+  #transit-timezone option:hover,
+  #transit-timezone option:focus { background: var(--bg-sunken); }
+  #transit-timezone option:checked {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  #transit-timezone::picker-icon { color: var(--text-secondary); }
+}
+
+#transit-choice-label { font-size: 12px; color: var(--text-secondary); }
+#transit-choice { margin-left: 8px; }
+#transit-status { margin: 0 0 20px; }
 
 .transit-completion {
   padding: 14px;
