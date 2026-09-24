@@ -26,6 +26,12 @@
   --undefined: #c8c0b8;
   --electromagnetic: #c47a2a;
 
+  /* Transit palette: shared by the SVG and UI. */
+  --transit-source: #1aadb7;
+  --transit-source-soft: #e4f1ef;
+  --transit-source-contrast: #16130f;
+  --transit-source-text: #19767b;
+
   /* Center colors */
   --defined-fill: var(--accent);
   --undefined-fill: transparent;
@@ -81,6 +87,10 @@
   --design: #e74c3c;
   --both: #d4943a;
   --undefined: #3a3630;
+  --transit-source: #66c7cc;
+  --transit-source-soft: #1a2726;
+  --transit-source-contrast: #16130f;
+  --transit-source-text: #66c7cc;
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.2);
   --shadow: 0 2px 8px rgba(0,0,0,0.3);
   --shadow-lg: 0 8px 24px rgba(0,0,0,0.4);
@@ -559,7 +569,7 @@ body {
 .center-card .center-status.undefined { color: var(--text-secondary); }
 .center-card .center-status.open { color: var(--text-tertiary); }
 
-.center-card p {
+.center-card p, .center-card .center-detail {
   font-size: 13px;
   color: var(--text-secondary);
   line-height: 1.5;
@@ -593,6 +603,8 @@ body {
 
 .circuit-badge {
   display: inline-block;
+  line-height: 1.6;
+  vertical-align: middle;
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
@@ -694,16 +706,29 @@ body {
   display: flex;
   align-items: flex-end;
   gap: 8px;
-  margin-bottom: 24px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
 }
 
-.transit-date-picker label {
+.transit-date-picker label:not(.transit-precision) {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
   font-size: 12px;
   font-weight: 500;
   color: var(--text-secondary);
 }
 
-.transit-date-picker input {
+.transit-date-picker input:not([type="checkbox"]),
+.transit-date-picker select,
+.transit-date-picker > button {
+  box-sizing: border-box;
+  height: 40px;
+  line-height: 20px;
+}
+
+.transit-date-picker input:not([type="checkbox"]),
+.transit-date-picker select {
   padding: 8px 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -712,6 +737,88 @@ body {
   background: var(--bg-elevated);
   color: var(--text);
 }
+
+#transit-timezone { width: 210px; max-width: 100%; }
+.transit-time-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.transit-time-group {
+  display: flex;
+  height: 40px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  overflow: hidden;
+}
+.transit-time-group:focus-within {
+  border-color: var(--accent);
+}
+.transit-time-group #transit-time {
+  height: 100%;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  outline: none;
+}
+.transit-precision {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border-left: 1px solid var(--border);
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.transit-precision:hover { background: var(--bg-sunken); }
+.transit-precision:has(input:checked) {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.transit-precision input { margin: 0; }
+
+/* Keep the picker in the same theme as the existing place-search menu.
+   Browsers without customizable selects retain their native picker. */
+@supports (appearance: base-select) {
+  #transit-timezone,
+  #transit-timezone::picker(select) {
+    appearance: base-select;
+  }
+  #transit-timezone { font-weight: 400; }
+
+  #transit-timezone::picker(select) {
+    margin-top: 4px;
+    max-height: 240px;
+    overflow-y: auto;
+    background: var(--bg-elevated);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-lg);
+    font: 13px var(--font);
+  }
+
+  #transit-timezone option {
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  #transit-timezone option:last-child { border-bottom: none; }
+  #transit-timezone option:hover,
+  #transit-timezone option:focus { background: var(--bg-sunken); }
+  #transit-timezone option:checked {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  #transit-timezone::picker-icon { color: var(--text-secondary); }
+}
+
+#transit-choice-label { font-size: 12px; color: var(--text-secondary); }
+#transit-choice { margin-left: 8px; }
+#transit-status { margin: 0 0 20px; }
 
 .transit-completion {
   padding: 14px;
@@ -964,9 +1071,10 @@ body {
 .bodygraph-svg.bg-dimmed .bg-center:not(.bg-lit) { opacity: 0.35; }
 
 .bg-tooltip {
-  position: absolute;
+  position: fixed;
   z-index: 50;
-  max-width: 260px;
+  width: max-content;
+  max-width: min(260px, calc(100vw - 16px));
   padding: 8px 11px;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
@@ -980,6 +1088,11 @@ body {
 .bg-tooltip strong { font-size: 12.5px; }
 
 .bg-tt-acts { margin-top: 3px; display: flex; flex-wrap: wrap; gap: 6px; }
+.bg-tooltip .bg-tt-source.natal, .bg-tooltip .bg-tt-source.inactive { color: var(--text-secondary); }
+.bg-tooltip .bg-tt-source.transit { color: var(--transit-source-text); }
+.bg-tooltip .bg-tt-source.both { color: var(--text-secondary); }
+.bg-tooltip .bg-tt-source.both .bg-tt-source-transit { color: var(--transit-source-text); }
+.bg-tooltip .bg-tt-source.completed { color: var(--accent); }
 .bg-tt-design { color: var(--design); font-weight: 600; }
 .bg-tt-personality { color: var(--personality); font-weight: 600; }
 .bg-tt-channel { margin-top: 3px; color: var(--text-secondary); font-size: 11px; }
@@ -1324,6 +1437,15 @@ body {
    ============================================= */
 
 body.modal-open { overflow: hidden; }
+
+/* Transit details use the same warm accent as the graph rings. */
+.gate-detail-transits {
+  border-left: 2px solid var(--accent);
+  padding: 8px 12px;
+  margin: 12px 0;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
 
 .gate-detail:not(.hidden) {
   position: fixed;
@@ -1739,7 +1861,7 @@ body.modal-open { overflow: hidden; }
   align-items: start;
 }
 
-.transit-graph { padding: 14px; }
+.transit-graph { min-width: 0; padding: 14px; }
 
 @media (max-width: 768px) {
   .transit-layout { grid-template-columns: 1fr; }
@@ -2091,3 +2213,45 @@ body.modal-open { overflow: hidden; }
 [data-theme="dark"] .field-error { color: #e07a68; }
 
 input[aria-invalid="true"] { border-color: #b3422f !important; }
+
+/* Transit sources use the shared palette above. Controls retain the app accent. */
+.transit-view-toolbar { margin: 0 0 18px; }
+.transit-mode-switch { display:flex; flex-wrap:wrap; border:0; padding:0; gap:6px; margin:0 0 14px; }
+.transit-mode-switch label { position:relative; cursor:pointer; }
+.transit-mode-switch input { position:absolute; opacity:0; width:1px; height:1px; }
+.transit-mode-switch span { display:block; padding:9px 16px; border:1px solid var(--border); border-radius:8px; font-size:13px; background:var(--bg-elevated); }
+.transit-mode-switch input:checked + span { background:var(--accent-soft); border-color:var(--accent); color:var(--accent); }
+.transit-mode-switch input:focus-visible + span { outline:2px solid var(--accent); outline-offset:3px; }
+.transit-graph-legend { display:flex; flex-wrap:wrap; gap:10px 20px; font-size:12px; margin-bottom:10px; color:var(--text-secondary); }
+.transit-graph-legend > span, .transit-legend-group > span { display:flex; align-items:center; gap:7px; }
+.transit-legend-group { display:flex; flex-wrap:wrap; gap:10px 20px; max-width:100%; }
+.transit-key { display:inline-block; width:18px; height:12px; border-radius:2px; flex-shrink:0; }
+.transit-key.natal { background:linear-gradient(90deg,var(--design) 50%,var(--personality) 50%); }
+.transit-key.sky-gate { width:14px; height:14px; border-radius:50%; background:var(--transit-source); }
+.transit-key.natal, .transit-key.sky-line { width:22px; height:4px; border-radius:0; }
+.transit-key.sky-line { background:var(--transit-source); }
+.transit-key.both { border:2px solid var(--transit-source); border-radius:50%; width:14px; height:14px; }
+.transit-key.center { border:1px solid var(--transit-source); background:repeating-linear-gradient(135deg,var(--transit-source-soft) 0 3px,var(--transit-source) 3px 4px); }
+.transit-source-badge { background:var(--transit-source-soft); color:var(--transit-source-text); }
+.gate-detail-body > .transit-source-badge { margin-left:0; }
+.transit-source-badge.natal, .transit-source-badge.inactive { background:var(--bg-sunken); color:var(--text-secondary); }
+.gate-detail-transits { color:var(--transit-source-text); }
+.center-status.transit-defined { color:var(--transit-source-text); }
+.gate-chip.transit-active { background:var(--transit-source-soft); color:var(--transit-source-text); border-color:var(--transit-source); }
+
+/* Direct drill-down for transit exploration. */
+/* Reuse the original card colors and row-lit accent without overriding them. */
+.transit-summary-button { display:block; width:100%; text-align:left; font:inherit; color:var(--text); cursor:pointer; }
+.transit-summary-button > span { display:block; }
+.transit-summary-button > .transit-source-badge { display:inline-block; }
+.transit-channel-gates { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:20px 0; }
+.transit-detail-link { display:grid; gap:10px; text-align:left; background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:8px; padding:16px; font:inherit; cursor:pointer; }
+.transit-detail-gate { display:flex; align-items:center; flex-wrap:wrap; }
+.transit-detail-action { font-size:12px; color:var(--accent); text-decoration:underline; }
+button.cd-channel { text-align:left; font-family:inherit; line-height:inherit; cursor:pointer; background:transparent; border:0; }
+button.cd-channel:hover { background:var(--accent-soft); }
+
+/* Let the existing card hover and dark-theme rules take precedence. */
+.transit-summary-button:where(.transit-completion, .center-card, .gate-item) { background:transparent; }
+.transit-completion-heading { display:flex !important; align-items:center; flex-wrap:wrap; gap:4px 10px; }
+.transit-channel-natal { border-left-color:var(--border); }

@@ -32,6 +32,7 @@
         <nav class="nav">
           <button class="nav-link active" data-view="chart">My Chart</button>
           <button class="nav-link" data-view="transits">Transits</button>
+          <button class="nav-link" data-view="timeline">Timeline</button>
           <button class="nav-link" data-view="connection">Connection</button>
           <button class="nav-link" data-view="team">Team</button>
         </nav>
@@ -110,7 +111,6 @@
         </div>
 
         <div class="info-column">
-          <div id="gate-detail" class="gate-detail hidden"></div>
           <div id="foundation-panel" class="panel"></div>
 
           <div class="panel-tabs">
@@ -132,17 +132,38 @@
         <h2 class="view-title">Transits</h2>
         <p class="view-subtitle">How the current planetary weather interacts with your chart</p>
         <div class="transit-date-picker">
-          <label for="transit-date">Date</label>
-          <input type="date" id="transit-date">
-          <button id="transit-today" class="btn-secondary">Today</button>
+          <label>Date<input type="date" id="transit-date"></label>
+          <div class="transit-time-field">
+            <label for="transit-time">Time</label>
+            <div class="transit-time-group">
+              <input type="time" id="transit-time" step="60">
+              <label class="transit-precision"><input type="checkbox" id="transit-seconds" aria-label="Include seconds"> Seconds</label>
+            </div>
+          </div>
+          <label>Timezone<select id="transit-timezone" aria-describedby="transit-status"></select></label>
+          <button id="transit-now" class="btn-secondary">Now</button>
+        </div>
+        <label id="transit-choice-label" hidden>Choose UTC offset <select id="transit-choice"></select></label>
+        <p id="transit-status" class="panel-intro" aria-live="polite"></p>
+        <div class="transit-view-toolbar">
+          <fieldset class="transit-mode-switch" aria-label="Chart view">
+            <label><input type="radio" name="transit-mode" value="overlay" checked><span>Birth chart + transits</span></label>
+            <label><input type="radio" name="transit-mode" value="transit-only"><span>Transit only</span></label>
+          </fieldset>
+          <div id="transit-graph-legend" class="transit-graph-legend" aria-label="Activation sources"></div>
         </div>
         <div class="transit-layout">
-          <div id="transit-bodygraph" class="bodygraph-container transit-graph"></div>
+          <div class="chart-column">
+            <div id="transit-bodygraph" class="bodygraph-container transit-graph"></div>
+          </div>
           <div id="transit-content" class="transit-content"></div>
         </div>
-        <p class="panel-intro" style="margin-top:8px">Dashed rings mark gates activated by the transiting planets on the chosen date.</p>
+
       </div>
     </section>
+
+    <!-- Independent transit timeline -->
+    <section id="timeline-view" class="view-section hidden"></section>
 
     <!-- Connection View -->
     <section id="connection-view" class="view-section hidden">
@@ -202,6 +223,8 @@
       <span>No account · no tracking · charts stay on your device</span>
     </footer>
   </div>
+
+  <div id="gate-detail" class="gate-detail hidden"></div>
 
   <script type="module" src="/src/main.js"></script>
 </body>
