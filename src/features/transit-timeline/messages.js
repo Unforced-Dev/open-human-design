@@ -35,6 +35,7 @@ export const en = {
   legend: 'Activation sources',
   design: 'Design', personality: 'Personality', birthPlanets: 'Birth activations',
   searchShort: 'Search', changesShort: 'Changes', centersShort: 'Centers',
+  mobileControls: 'Timeline controls', backToChart: 'Back to chart',
   timingDetails: 'Activation interval', timingShort: 'Transit interval', transitPlanets: 'Transit activations',
   beforeShort: 'Started earlier', afterShort: 'Ends later', durationShort: 'Duration',
   fixing_exalted: 'Exaltation', fixing_detriment: 'Detriment', fixing_juxtaposed: 'Juxtaposition',

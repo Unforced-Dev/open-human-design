@@ -1,4 +1,5 @@
 const DAY = 24 * 60 * 60 * 1000;
+const HOUR = 60 * 60 * 1000;
 const zoneCache = new Map();
 const labelCache = new Map();
 
@@ -43,6 +44,35 @@ export function calendarRuler(range, zone, locale, widthPx = 400) {
     return `${parts.year}-${parts.month}-${parts.day}`;
   };
   const duration = range.end - range.start;
+  if (duration >= 20 * HOUR && duration <= 26 * HOUR) {
+    const hourTitle = new Intl.DateTimeFormat(locale, {
+      timeZone: zone, month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+      timeZoneName: 'shortOffset', hourCycle: 'h23'
+    });
+    const wallFormatter = new Intl.DateTimeFormat('en-GB', {
+      timeZone: zone, hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23'
+    });
+    const wallParts = instant => Object.fromEntries(wallFormatter.formatToParts(instant).map(part => [part.type, part.value]));
+    const wall = wallParts(range.start);
+    let hourStart = range.start - Number(wall.minute) * 60_000 - Number(wall.second) * 1000
+      - new Date(range.start).getUTCMilliseconds();
+    const cells = [], boundaries = [];
+    while (hourStart < range.end) {
+      const next = hourStart + HOUR;
+      const start = Math.max(range.start, hourStart);
+      const end = Math.min(range.end, next);
+      if (end > start) {
+        const hour = Number(wallParts(hourStart).hour);
+        cells.push({ start, end, dayStart: hourStart, dayEnd: next,
+          date: dateAt(start), label: String(hour).padStart(2, '0'), showLabel: true,
+          title: hourTitle.format(hourStart),
+          tone: cells.length % 2, granularity: 'hour' });
+        if (next < range.end) boundaries.push(next);
+      }
+      hourStart = next;
+    }
+    return { cells, boundaries, labels: [] };
+  }
   if (duration > 60 * DAY) {
     const monthAt = instant => dateAt(instant).slice(0, 7);
     const cells = [];

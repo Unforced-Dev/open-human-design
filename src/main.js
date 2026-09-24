@@ -59,6 +59,7 @@ function showView(view) {
   closeDetailDialog();
   if (view !== 'timeline') timelineView?.deactivate();
   if (!currentData && view !== 'chart') return;
+  document.body.classList.toggle('timeline-active', view === 'timeline' && !!currentData);
 
   document.querySelectorAll('.nav-link').forEach(l =>
     l.classList.toggle('active', l.dataset.view === view));

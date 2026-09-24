@@ -39,6 +39,33 @@ test('one-hour and six-hour windows retain their true date cells without artific
   assert.deepEqual(six.cells.map(cell => (cell.end - cell.start) / 3_600_000), [2, 4]);
 });
 
+test('daily ruler labels every full local hour cell, including DST gaps and repeats', () => {
+  const ordinary = calendarRuler({ start: at('2026-09-23T16:00:00Z'),
+    end: at('2026-09-24T16:00:00Z') }, 'Asia/Shanghai', 'zh-CN', 280);
+  assert.equal(ordinary.cells.length, 24);
+  assert.equal(ordinary.boundaries.length, 23);
+  assert.ok(ordinary.cells.every(cell => cell.granularity === 'hour'));
+  assert.deepEqual(ordinary.cells.map(cell => cell.label),
+    Array.from({ length: 24 }, (_, hour) => String(hour).padStart(2, '0')));
+  assert.ok(ordinary.cells.every(cell => cell.showLabel && cell.dayEnd - cell.dayStart === 3_600_000));
+  assert.equal(ordinary.cells[1].dayStart, at('2026-09-23T17:00:00Z'));
+  assert.equal(ordinary.cells[1].dayEnd, at('2026-09-23T18:00:00Z'));
+  assert.equal(ordinary.cells[1].label, '01');
+  assert.deepEqual(ordinary.labels, []);
+
+  const spring = calendarRuler({ start: at('2026-03-08T05:00:00Z'),
+    end: at('2026-03-09T04:00:00Z') }, 'America/New_York', 'en-US', 1000);
+  assert.equal(spring.cells.length, 23);
+  assert.ok(spring.cells.some(cell => cell.label === '03'));
+  assert.ok(!spring.cells.some(cell => cell.label === '02'));
+
+  const fall = calendarRuler({ start: at('2026-11-01T04:00:00Z'),
+    end: at('2026-11-02T05:00:00Z') }, 'America/New_York', 'en-US', 1000);
+  assert.equal(fall.cells.length, 25);
+  assert.equal(fall.cells.filter(cell => cell.label === '01').length, 2);
+  assert.notEqual(...fall.cells.filter(cell => cell.label === '01').map(cell => cell.title));
+});
+
 test('28-day window keeps every boundary and uses day numbers within their cells', () => {
   const start = at('2026-09-01T00:00:00Z');
   const ruler = calendarRuler({ start, end: start + 28 * DAY }, 'UTC', 'en-US', 400);

@@ -119,6 +119,7 @@ export function createTransitTimeline({ root, host, messages, locale = 'en-GB', 
     <div class="tl-time-error" role="status"></div>
     <label class="tl-fold" hidden>${esc(t('chooseOffset'))}<select data-field="fold"></select></label>
     <div class="tl-workspace"><div class="tl-stage">
+      <button type="button" class="tl-mobile-exit" data-action="mobile-exit" aria-label="${esc(t('backToChart'))}" title="${esc(t('backToChart'))}">←</button>
       <div class="tl-graph-panel">
         <div class="tl-selected"><output class="tl-moment" aria-label="${esc(t('selected'))}"><span class="tl-moment-date"></span><span class="tl-moment-time"></span></output></div>
         <details class="tl-legend-disclosure"><summary>${esc(t('legend'))}</summary><div class="tl-legend">${['natal','transit','completed','both'].map(source => `<span data-source="${source}"><i></i>${esc(t(source))}</span>`).join('')}</div></details>
@@ -126,6 +127,8 @@ export function createTransitTimeline({ root, host, messages, locale = 'en-GB', 
         <div class="tl-planet-column tl-transit-column bg-planets"><div class="bg-planets-head">${esc(t('transit'))}</div><div class="tl-planets" data-planets="transit"></div></div>
         <div class="tl-planet-column tl-birth-column"><div class="tl-birth-head${locale.startsWith('en') ? ' tl-birth-head-en' : ''}"><span class="bg-planets-design"><span class="bg-planets-head">${esc(t('design'))}</span></span><span aria-hidden="true"></span><span class="bg-planets-personality"><span class="bg-planets-head">${esc(t('personality'))}</span></span></div><div class="tl-birth-planets"></div></div>
       </div>
+      <button type="button" class="tl-mobile-controls-trigger" data-action="mobile-controls" aria-controls="tl-mobile-controls" aria-expanded="false" aria-label="${esc(t('mobileControls'))}" title="${esc(t('mobileControls'))}"><span aria-hidden="true">☷</span></button>
+      <div class="tl-mobile-controls-panel" id="tl-mobile-controls" hidden></div>
     </div>
     <div class="tl-explorer"><section class="tl-tracks-panel" aria-label="${esc(t('tracks'))}">
       <div class="tl-table" aria-busy="true" tabindex="0" role="region" aria-label="${esc(t('scrub'))}" aria-describedby="tl-gesture-help" title="${esc(t('timelineHelp'))}">
@@ -149,6 +152,33 @@ export function createTransitTimeline({ root, host, messages, locale = 'en-GB', 
         ${button('retry', t('retry'))}
       </div>
     </div></section></div></div>`;
+
+  const mobileLayout = window.matchMedia('(max-width: 740px)');
+  const toolbar = $('.tl-toolbar');
+  const kindControl = $('.tl-kind');
+  const compactControls = $('.tl-compact-controls');
+  const controlPanel = $('.tl-mobile-controls-panel');
+  const toolbarAnchor = document.createComment('timeline toolbar home');
+  const kindAnchor = document.createComment('timeline filter home');
+  const compactAnchor = document.createComment('timeline compact controls home');
+  toolbar.before(toolbarAnchor);
+  kindControl.before(kindAnchor);
+  compactControls.before(compactAnchor);
+  function showMobileControls(open) {
+    controlPanel.hidden = !open;
+    $('.tl-mobile-controls-trigger').setAttribute('aria-expanded', String(open));
+  }
+  function placeControls() {
+    showMobileControls(false);
+    if (mobileLayout.matches) controlPanel.append(toolbar, kindControl, compactControls);
+    else {
+      toolbarAnchor.after(toolbar);
+      kindAnchor.after(kindControl);
+      compactAnchor.after(compactControls);
+    }
+  }
+  listen(mobileLayout, 'change', placeControls);
+  placeControls();
 
   $('[data-action="retry"]').hidden = true;
   const zones = [...new Set(['UTC', zone, ...(Intl.supportedValuesOf?.('timeZone') || [])])].sort();
@@ -297,7 +327,8 @@ export function createTransitTimeline({ root, host, messages, locale = 'en-GB', 
     const dayTone = cell => cell.tone ?? (Math.floor(Date.parse(`${cell.date}T00:00:00Z`) / DAY) % 2 + 2) % 2;
     const bands = ruler.cells.map(cell => `<i class="tl-day-band" data-date="${cell.date}" data-tone="${dayTone(cell)}" style="${dayPosition(cell)}" aria-hidden="true"></i>`).join('');
     const grid = ruler.boundaries.map(instant => `<i class="tl-gridline" data-instant="${instant}" style="left:${ratioAt(windowRange, instant) * 100}%" aria-hidden="true"></i>`).join('');
-    reconcile($('.tl-ticks'), ruler.cells.map(cell => `<span class="tl-date-cell" data-date="${cell.date}" data-tone="${dayTone(cell)}" style="${dayPosition(cell)}" title="${esc(cell.date)}"><span class="tl-date-label">${cell.showLabel ? esc(cell.label) : ''}</span></span>`).join(''));
+    reconcile($('.tl-ticks'), ruler.cells.map(cell => `<span class="tl-date-cell" data-key="${cell.dayStart}" data-date="${cell.date}" data-granularity="${cell.granularity || 'day'}" data-tone="${dayTone(cell)}" style="${dayPosition(cell)}" title="${esc(cell.title || cell.date)}"><span class="tl-date-label">${cell.showLabel ? esc(cell.label) : ''}</span></span>`).join('')
+      + (ruler.labels || []).map(mark => `<span class="tl-hour-label" data-instant="${mark.instant}" style="left:${ratioAt(windowRange, mark.instant) * 100}%">${esc(mark.label)}</span>`).join(''));
     if (!result) { $('.tl-rows').replaceChildren(); return; }
     const kind = $('[data-field="kind"]').value;
     const query = $('[data-field="search"]').value.toLocaleLowerCase(locale).trim();
@@ -595,10 +626,16 @@ export function createTransitTimeline({ root, host, messages, locale = 'en-GB', 
     }
   });
   listen($('.tl-table'), 'gestureend', event => event.preventDefault());
+  listen($('.tl-table'), 'selectstart', event => {
+    if (event.target.closest('.tl-track')) event.preventDefault();
+  });
 
   listen(root, 'click', event => {
     if (suppressClick) { suppressClick = false; event.preventDefault(); return; }
     const action = event.target.closest('[data-action]')?.dataset.action;
+    if (action === 'mobile-exit') { showMobileControls(false); host.onExit?.(); return; }
+    if (action === 'mobile-controls') { showMobileControls(controlPanel.hidden); return; }
+    if (!controlPanel.hidden && !controlPanel.contains(event.target)) showMobileControls(false);
     if (action === 'now') selectTime(Date.now(), { recenter: true });
     if (action === 'changes') {
       const toggle = $('[data-field="changes"]');
@@ -620,8 +657,20 @@ export function createTransitTimeline({ root, host, messages, locale = 'en-GB', 
     if (planet?.dataset.gate && context) host.showDetail('gate', Number(planet.dataset.gate), context);
   });
 
+  let lastInput = 'pointer';
+  listen(root, 'pointerdown', event => {
+    lastInput = event.pointerType;
+    if (lastInput === 'touch' && hoverSelection) {
+      hoverSelection = null;
+      context?.api?.highlightSelection(null);
+    }
+  });
+  listen(root, 'keydown', event => {
+    lastInput = 'keyboard';
+    if (event.key === 'Escape') showMobileControls(false);
+  });
   const preview = event => {
-    if (event.pointerType === 'touch') return;
+    if (event.pointerType === 'touch' || (event.type === 'focusin' && lastInput === 'touch')) return;
     const rowNode = event.target.closest('[data-row], [data-interval]');
     const row = rowNode && result?.rows.find(item => item.key === (rowNode.dataset.row || rowNode.dataset.key));
     if (row) {
@@ -692,16 +741,37 @@ export function createTransitTimeline({ root, host, messages, locale = 'en-GB', 
   }
 
   // Capture on the stable table: its rows are replaced while auto-panning.
-  // Vertical touch scrolling is left native until a horizontal drag starts.
+  // On phones, lock the first touch direction for the whole gesture. Native
+  // pan-y can otherwise claim a diagonal swipe after time panning has begun.
   listen($('.tl-table'), 'pointerdown', event => {
     if (!event.target.closest('.tl-track') || event.button !== 0 || !result || calculating) return;
     stopDrag();
     suppressClick = false;
     drag = { id: event.pointerId, pointerType: event.pointerType, x: event.clientX, y: event.clientY,
-      clientX: event.clientX, moved: false, bar: event.target.closest('.tl-bar'), lastPan: 0 };
+      clientX: event.clientX, clientY: event.clientY, axis: null,
+      moved: false, bar: event.target.closest('.tl-bar'), lastPan: 0 };
   });
   listen($('.tl-table'), 'pointermove', event => {
     if (!drag || drag.id !== event.pointerId) return;
+    if (drag.pointerType === 'touch' && mobileLayout.matches) {
+      const table = $('.tl-table');
+      if (!drag.axis) {
+        const dx = Math.abs(event.clientX - drag.x), dy = Math.abs(event.clientY - drag.y);
+        if (Math.max(dx, dy) < 5) return;
+        drag.axis = dx >= dy * .65 ? 'horizontal' : 'vertical';
+        table.setPointerCapture(event.pointerId);
+        drag.moved = true;
+      }
+      if (drag.axis === 'vertical') {
+        table.scrollTop += drag.clientY - event.clientY;
+        drag.clientY = event.clientY;
+        return;
+      }
+      const width = $('.tl-ticks').getBoundingClientRect().width;
+      if (width) panTime((drag.clientX - event.clientX) / width * span);
+      drag.clientX = event.clientX;
+      return;
+    }
     if (!drag.moved && Math.abs(event.clientY - drag.y) > Math.abs(event.clientX - drag.x) + 5) { stopDrag(); return; }
     if (!drag.moved && Math.abs(event.clientX - drag.x) < 5) return;
     if (!drag.moved) $('.tl-table').setPointerCapture(event.pointerId);

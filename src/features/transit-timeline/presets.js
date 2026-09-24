@@ -1,4 +1,4 @@
-import { DAY, centeredWindow } from './core.js';
+import { DAY } from './core.js';
 import { wallTime } from './time.js';
 
 export const RANGE_OPTIONS = [
@@ -56,8 +56,11 @@ export function presetWindow(instant, preset, zone, resolveTime) {
     const end = instant + 1000; // Include the selected second in the exclusive range.
     return { start: anniversary(instant, -1, zone, resolveTime), end };
   }
-  if (preset === '1') return centeredWindow(instant, DAY);
   const currentDate = wallTime(instant, zone).date;
+  if (preset === '1') return {
+    start: localDayBoundary(currentDate, zone),
+    end: localDayBoundary(shiftDate(currentDate, 1), zone)
+  };
   const daysBefore = { '3': 1, '7': 3, '28': 14 }[preset];
   const daysAfter = Number(preset) - daysBefore;
   return {

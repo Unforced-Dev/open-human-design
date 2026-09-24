@@ -8,11 +8,17 @@ import { transitInstants } from '../src/lib/transit-time.js';
 const at = iso => Date.parse(iso);
 const resolve = (date, time, zone) => transitInstants(date, time, zone)[0].instant;
 
-test('the six presets retain a centered exact 24-hour window', () => {
+test('the one-day preset covers the selected local calendar date', () => {
   assert.deepEqual(RANGE_OPTIONS.map(([value]) => value), ['1', '3', '7', '28', 'year', 'past-year']);
-  const instant = at('2026-09-24T09:50:00Z');
+  const instant = resolve('2026-09-24', '01:45:00', 'Asia/Shanghai');
   const window = presetWindow(instant, '1', 'Asia/Shanghai', transitInstants);
-  assert.deepEqual(window, { start: instant - DAY / 2, end: instant + DAY / 2 });
+  assert.deepEqual(window, { start: at('2026-09-23T16:00:00Z'), end: at('2026-09-24T16:00:00Z') });
+  assert.equal(window.end - window.start, DAY);
+  assert.deepEqual(presetWindow(resolve('2026-09-24', '23:59:00', 'Asia/Shanghai'), '1', 'Asia/Shanghai', transitInstants), window);
+  const spring = presetWindow(resolve('2026-03-08', '03:30:00', 'America/New_York'), '1', 'America/New_York', transitInstants);
+  assert.deepEqual(spring, { start: at('2026-03-08T05:00:00Z'), end: at('2026-03-09T04:00:00Z') });
+  const fall = presetWindow(resolve('2026-11-01', '01:30:00', 'America/New_York'), '1', 'America/New_York', transitInstants);
+  assert.deepEqual(fall, { start: at('2026-11-01T04:00:00Z'), end: at('2026-11-02T05:00:00Z') });
 });
 
 test('3, 7 and 28 days use complete Shanghai calendar dates independent of clock time', () => {

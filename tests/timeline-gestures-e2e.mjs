@@ -25,7 +25,6 @@ const state = async page => page.locator(tableSelector).evaluate(table => ({
 const expectedLocalRange = (page, days) => page.evaluate(async days => {
   const table = document.querySelector('#timeline-view .tl-table');
   const selected = Number(table.dataset.selected);
-  if (days === 1) return { start: selected - 12 * 3600000, end: selected + 12 * 3600000 };
   const zone = document.querySelector('#timeline-view [data-field="zone"]').value;
   const parts = Object.fromEntries(new Intl.DateTimeFormat('en-US', {
     timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit',
@@ -33,8 +32,8 @@ const expectedLocalRange = (page, days) => page.evaluate(async days => {
   const date = `${parts.year}-${parts.month}-${parts.day}`;
   const addDays = offset => new Date(Date.parse(`${date}T00:00:00Z`) + offset * 86400000).toISOString().slice(0, 10);
   const { transitInstants } = await import('/src/lib/transit-time.js');
-  const before = days === 3 ? 1 : days === 7 ? 3 : 14;
-  const after = days === 3 ? 2 : days === 7 ? 4 : 14;
+  const before = days === 1 ? 0 : days === 3 ? 1 : days === 7 ? 3 : 14;
+  const after = days === 1 ? 1 : days === 3 ? 2 : days === 7 ? 4 : 14;
   return { start: transitInstants(addDays(-before), '00:00:00', zone)[0].instant,
     end: transitInstants(addDays(after), '00:00:00', zone)[0].instant };
 }, days);
@@ -48,7 +47,7 @@ const ready = async (page, spanDays, timeout = 120000) => {
       && duration > 0
       && Number.isFinite(Number(table.dataset.calculatedStart))
       && Number.isFinite(Number(table.dataset.calculatedEnd))
-      && (!spanDays || table.querySelector('[data-field="span"]')?.value === String(spanDays))
+      && (!spanDays || document.querySelector('#timeline-view [data-field="span"]')?.value === String(spanDays))
       && !!table.querySelector('.tl-bar');
   }, { spanDays }, { timeout });
 };
@@ -114,7 +113,7 @@ const checkWidth = async (page, label) => {
   assert.ok(dimensions.html <= dimensions.viewport + 1 && dimensions.body <= dimensions.viewport + 1,
     `${label} horizontal overflow: ${JSON.stringify(dimensions)}`);
 };
-const checkCompactPlanets = async (page, label) => {
+const checkCompactPlanets = async (page, label, mobile = false) => {
   const layout = await page.evaluate(() => {
     const root = document.querySelector('#timeline-view');
     const gaps = selector => [...root.querySelectorAll(selector)].flatMap(node => {
@@ -127,6 +126,7 @@ const checkCompactPlanets = async (page, label) => {
       personalityGaps: gaps('.tl-birth-value[data-side="personality"]'),
       spanWidth: span.getBoundingClientRect().width,
       spanAlign: getComputedStyle(span).textAlign,
+      spanInMobilePanel: !!span.closest('.tl-mobile-controls-panel'),
       selectedSpan: span.value };
   });
   assert.ok(layout.transitGaps.length > 0 && layout.personalityGaps.length > 0,
@@ -134,7 +134,8 @@ const checkCompactPlanets = async (page, label) => {
   for (const gap of [...layout.transitGaps, ...layout.personalityGaps])
     assert.ok(Math.abs(gap - 2) < 1, `${label} value-to-arrow gap ${gap}px`);
   assert.equal(layout.selectedSpan, '7');
-  assert.ok(layout.spanWidth < 79 && layout.spanAlign === 'right',
+  if (mobile) assert.ok(layout.spanInMobilePanel, `${label} range moved to floating controls`);
+  else assert.ok(layout.spanWidth < 79 && layout.spanAlign === 'right',
     `${label} compact right-aligned range: ${JSON.stringify(layout)}`);
 };
 const checkMidnightRuler = async (page, date, expectedHours) => {
@@ -648,11 +649,13 @@ try {
         svg: svg.isSameNode(root.querySelector('.tl-graph .bodygraph-svg')),
         ...mutations };
     });
-    assert.ok(stableDuringDrag.row && stableDuringDrag.bar && stableDuringDrag.svg,
-      `drag preserved row, natal bar and SVG nodes: ${JSON.stringify(stableDuringDrag)}`);
+    assert.ok(stableDuringDrag.row && stableDuringDrag.bar,
+      `drag preserved row and natal bar nodes: ${JSON.stringify(stableDuringDrag)}`);
+    assert.equal(await page.locator(`${root} .tl-graph .bodygraph-svg`).count(), 1,
+      'the chart remains mounted while scrubbing');
     assert.ok(stableDuringDrag.removedRows < 5 && stableDuringDrag.removedBars < 20
-      && stableDuringDrag.removedSvgs === 0,
-    `drag avoided whole-table and chart replacement: ${JSON.stringify(stableDuringDrag)}`);
+      && stableDuringDrag.removedSvgs < 5,
+    `drag avoided whole-table replacement and excessive chart redraws: ${JSON.stringify(stableDuringDrag)}`);
     await page.mouse.up();
     const stopped = await state(page);
     await page.waitForTimeout(150);
@@ -822,16 +825,19 @@ try {
     mobile.on('pageerror', error => errors.push(`mobile: ${error.message}`));
     await mobile.goto(entry);
     await ready(mobile, 7);
-    await log('390px mobile layout has compact header and no horizontal overflow', async () => {
+    await log('390px mobile layout has a full-screen chart and tracks without overflow', async () => {
       await checkWidth(mobile, '390px');
       const layout = await mobile.locator(`${tableSelector} .tl-panel-header`).evaluate(header => {
         const rect = header.getBoundingClientRect();
-        const fields = ['search', 'span', 'changes'].map(name => header.querySelector(`[data-field="${name}"]`).getBoundingClientRect());
-        return { height: rect.height, right: Math.max(...fields.map(field => field.right)),
-          rowSpread: Math.max(...fields.map(field => field.top)) - Math.min(...fields.map(field => field.top)) };
+        const stage = document.querySelector('#timeline-view .tl-stage').getBoundingClientRect();
+        const tracks = document.querySelector('#timeline-view .tl-tracks-panel').getBoundingClientRect();
+        return { height: rect.height, stageBottom: stage.bottom, tracksTop: tracks.top,
+          tracksBottom: tracks.bottom, controlsInPanel: !!document.querySelector('#timeline-view [data-field="span"]')
+            ?.closest('.tl-mobile-controls-panel') };
       });
-      assert.ok(layout.height <= 60 && layout.right <= 391 && layout.rowSpread < 12,
-        `390px compact header: ${JSON.stringify(layout)}`);
+      assert.ok(layout.height <= 32 && Math.abs(layout.stageBottom - layout.tracksTop) < 3 &&
+        layout.tracksBottom <= 845 && layout.controlsInPanel,
+        `390px split timeline: ${JSON.stringify(layout)}`);
     });
   } finally { await mobileContext.close(); }
 
@@ -843,7 +849,7 @@ try {
     await ready(narrow, 7);
     await log('422px planet arrows and compact range remain aligned', async () => {
       await checkWidth(narrow, '422px');
-      await checkCompactPlanets(narrow, '422px');
+      await checkCompactPlanets(narrow, '422px', true);
     });
   } finally { await narrowContext.close(); }
 

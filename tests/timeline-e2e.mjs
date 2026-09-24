@@ -11,7 +11,7 @@ const chrome = process.env.CHROME_PATH
   : { channel: process.env.CHROME_CHANNEL || 'chrome' };
 const entry = `${base}/?d=1990-06-15&t=14:30&tz=8&n=Timeline%20Demo&view=timeline`;
 const browser = await chromium.launch({ ...chrome, headless: true });
-const desktopContext = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+const desktopContext = await browser.newContext({ viewport: { width: 1440, height: 1000 }, locale: 'en-GB' });
 const page = await desktopContext.newPage();
 const errors = [];
 page.on('pageerror', error => errors.push(error.message));
@@ -28,7 +28,6 @@ const calculatedRange = () => page.locator(`${tl} .tl-table`).evaluate(el => ({
 const expectedLocalRange = (targetPage, days) => targetPage.evaluate(async days => {
   const table = document.querySelector('#timeline-view .tl-table');
   const selected = Number(table.dataset.selected);
-  if (days === 1) return { start: selected - 12 * 3600000, end: selected + 12 * 3600000 };
   const zone = document.querySelector('#timeline-view [data-field="zone"]').value;
   const parts = Object.fromEntries(new Intl.DateTimeFormat('en-US', {
     timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit',
@@ -36,8 +35,8 @@ const expectedLocalRange = (targetPage, days) => targetPage.evaluate(async days 
   const date = `${parts.year}-${parts.month}-${parts.day}`;
   const addDays = offset => new Date(Date.parse(`${date}T00:00:00Z`) + offset * 86400000).toISOString().slice(0, 10);
   const { transitInstants } = await import('/src/lib/transit-time.js');
-  const before = days === 3 ? 1 : days === 7 ? 3 : 14;
-  const after = days === 3 ? 2 : days === 7 ? 4 : 14;
+  const before = days === 1 ? 0 : days === 3 ? 1 : days === 7 ? 3 : 14;
+  const after = days === 1 ? 1 : days === 3 ? 2 : days === 7 ? 4 : 14;
   return { start: transitInstants(addDays(-before), '00:00:00', zone)[0].instant,
     end: transitInstants(addDays(after), '00:00:00', zone)[0].instant };
 }, days);
@@ -200,8 +199,9 @@ try {
     await page.selectOption(field('span'), '1');
     await ready();
     const oneDay = await calculatedRange();
-    assert.deepEqual([oneDay.start, oneDay.end], [oneDay.selected - 12 * 3600000, oneDay.selected + 12 * 3600000],
-      '24-hour preset stays symmetric about the selected instant');
+    const expected = await expectedLocalRange(page, 1);
+    assert.deepEqual([oneDay.start, oneDay.end], [expected.start, expected.end],
+      'one-day preset covers the selected local calendar date');
     await page.selectOption(field('span'), '28');
     await page.click('.nav-link[data-view="chart"]');
     await page.click('.nav-link[data-view="timeline"]');

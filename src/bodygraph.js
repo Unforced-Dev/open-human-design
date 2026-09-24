@@ -593,7 +593,8 @@ export function renderBodygraph(container, chart, opts = {}) {
       const { clientWidth, clientHeight } = document.documentElement;
       const x = evt.clientX + gap + width <= clientWidth - margin
         ? evt.clientX + gap : evt.clientX - width - gap;
-      const y = evt.clientY + gap + height <= clientHeight - margin
+      const y = evt.pointerType === 'touch' ? evt.clientY - height - 20
+        : evt.clientY + gap + height <= clientHeight - margin
         ? evt.clientY + gap : evt.clientY - height - gap;
       tooltip.style.left = `${Math.max(margin, Math.min(x, clientWidth - width - margin))}px`;
       tooltip.style.top = `${Math.max(margin, Math.min(y, clientHeight - height - margin))}px`;
@@ -621,10 +622,62 @@ export function renderBodygraph(container, chart, opts = {}) {
         moveTooltip(evt);
       }
     });
+    let touchStart = null;
+    let touchDragged = false;
+    function showTouchPreview(evt) {
+      const target = document.elementFromPoint(evt.clientX, evt.clientY);
+      const gateEl = target?.closest('[data-gate]');
+      const centerEl = target?.closest('[data-center]');
+      if (gateEl && svg.contains(gateEl)) {
+        const gate = Number(gateEl.getAttribute('data-gate'));
+        highlightGate(gate);
+        tooltip.innerHTML = tooltipText(gate);
+      } else if (centerEl && svg.contains(centerEl)) {
+        const center = centerEl.getAttribute('data-center');
+        highlightCenter(center);
+        tooltip.innerHTML = centerTooltipText(center);
+      } else {
+        highlightGate(null);
+        tooltip.style.display = 'none';
+        return;
+      }
+      tooltip.style.display = 'block';
+      moveTooltip(evt);
+    }
+    if (opts.touchPreview) {
+      let touchPointerId = null;
+      const trackTouchPreview = evt => {
+        if (evt.pointerId !== touchPointerId || !touchStart) return;
+        if (Math.hypot(evt.clientX - touchStart.x, evt.clientY - touchStart.y) > 8) touchDragged = true;
+        showTouchPreview(evt);
+      };
+      const endTouchPreview = evt => {
+        if (evt.pointerId !== touchPointerId) return;
+        touchStart = null;
+        touchPointerId = null;
+        highlightGate(null);
+        tooltip.style.display = 'none';
+        document.removeEventListener('pointermove', trackTouchPreview);
+        document.removeEventListener('pointerup', endTouchPreview);
+        document.removeEventListener('pointercancel', endTouchPreview);
+        if (evt.type === 'pointercancel') touchDragged = false;
+      };
+      svg.addEventListener('pointerdown', (evt) => {
+        if (evt.pointerType !== 'touch') return;
+        touchStart = { x: evt.clientX, y: evt.clientY };
+        touchPointerId = evt.pointerId;
+        touchDragged = false;
+        showTouchPreview(evt);
+        document.addEventListener('pointermove', trackTouchPreview);
+        document.addEventListener('pointerup', endTouchPreview);
+        document.addEventListener('pointercancel', endTouchPreview);
+      });
+    }
     svg.addEventListener('pointermove', (evt) => {
-      if (tooltip.style.display === 'block') moveTooltip(evt);
+      if (evt.pointerType !== 'touch' && tooltip.style.display === 'block') moveTooltip(evt);
     });
     svg.addEventListener('pointerout', (evt) => {
+      if (evt.pointerType === 'touch' && touchStart) return;
       const rt = evt.relatedTarget;
       const stayingOnTarget = rt && svg.contains(rt) && (rt.closest('[data-gate]') || rt.closest('[data-center]'));
       if (!stayingOnTarget) {
@@ -633,6 +686,7 @@ export function renderBodygraph(container, chart, opts = {}) {
       }
     });
     svg.addEventListener('click', (evt) => {
+      if (touchDragged && evt.pointerType === 'touch') { touchDragged = false; return; }
       const gateEl = evt.target.closest('[data-gate]');
       if (gateEl && opts.onGateClick) { opts.onGateClick(parseInt(gateEl.getAttribute('data-gate'))); return; }
       const centerEl = evt.target.closest('[data-center]');
