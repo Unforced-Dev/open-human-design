@@ -697,7 +697,7 @@ export function createTransitTimeline({ root, host, messages, locale = 'en-GB', 
     if (!event.target.closest('.tl-track') || event.button !== 0 || !result || calculating) return;
     stopDrag();
     suppressClick = false;
-    drag = { id: event.pointerId, x: event.clientX, y: event.clientY,
+    drag = { id: event.pointerId, pointerType: event.pointerType, x: event.clientX, y: event.clientY,
       clientX: event.clientX, moved: false, bar: event.target.closest('.tl-bar'), lastPan: 0 };
   });
   listen($('.tl-table'), 'pointermove', event => {
@@ -706,6 +706,14 @@ export function createTransitTimeline({ root, host, messages, locale = 'en-GB', 
     if (!drag.moved && Math.abs(event.clientX - drag.x) < 5) return;
     if (!drag.moved) $('.tl-table').setPointerCapture(event.pointerId);
     drag.moved = true;
+    if (drag.pointerType === 'touch') {
+      // A finger swipe pans the time window, like horizontal trackpad scrolling.
+      // Mouse dragging keeps its existing pointer-to-time scrubbing behavior.
+      const width = $('.tl-ticks').getBoundingClientRect().width;
+      if (width) panTime((drag.clientX - event.clientX) / width * span);
+      drag.clientX = event.clientX;
+      return;
+    }
     drag.clientX = event.clientX;
     selectPointerTime();
     if (edgeSpeed() && !edgeFrame) {
@@ -722,11 +730,15 @@ export function createTransitTimeline({ root, host, messages, locale = 'en-GB', 
     clearTimeout(clickReset);
     clickReset = setTimeout(() => { suppressClick = false; }, 0);
     drag.clientX = event.clientX;
-    if (drag.moved || !drag.bar) selectPointerTime();
+    if ((drag.moved && drag.pointerType !== 'touch') || (!drag.moved && !drag.bar)) selectPointerTime();
     stopDrag();
   });
   listen($('.tl-table'), 'pointercancel', () => { stopDrag(); suppressClick = false; });
-  listen($('.tl-table'), 'lostpointercapture', event => { if (drag?.id === event.pointerId) stopDrag(); });
+  listen($('.tl-table'), 'lostpointercapture', event => {
+    // Touch pointers are implicitly captured by the touched track first.
+    // Transferring capture to the table bubbles a loss event from that track.
+    if (event.target === $('.tl-table') && drag?.id === event.pointerId) stopDrag();
+  });
   listen(window, 'blur', stopDrag);
   listen(document, 'visibilitychange', () => { if (document.hidden) stopDrag(); });
 
