@@ -63,6 +63,27 @@ npm run e2e    # browser smoke test (dev server must be running)
 npm run build  # production build
 ```
 
+### Transit colors
+
+The transit palette lives alongside the app palette at the top of
+[`src/styles.css`](src/styles.css), in `:root` and `[data-theme="dark"]`.
+The SVG and HTML UI share these CSS custom properties:
+
+| Property | Used for |
+| --- | --- |
+| `--transit-source` | Transit paths, gate fills and rings, center outlines and hatching |
+| `--transit-source-soft` | Hatched center and source badge backgrounds |
+| `--transit-source-contrast` | Numbers on filled transit gates |
+| `--transit-source-text` | Readable transit labels, badge text and detail text |
+
+To adapt a skin, override these properties after the base stylesheet for both
+light and dark themes. No renderer changes are needed. Keep gate numbers readable
+against `--transit-source`, and source text readable against `--transit-source-soft`
+and the page surfaces. The default cyan accent is `#1aadb7` in light mode and
+`#66c7cc` in dark mode, with a darker light-mode text color for readability.
+Controls and selection highlights continue to use the app's `--accent` palette;
+circuit badges keep their existing category colors. This adds no theme-switching UI.
+
 Powered by [NatalEngine](https://github.com/Unforced-Dev/natalengine) — an open, MIT-licensed
 birth chart engine for Human Design, Western astrology, Vedic astrology, and Gene Keys, with an
 MCP server for AI integrations.

@@ -6,6 +6,7 @@
  * persistence in src/lib/people.js (backed by natalengine profiles).
  */
 
+import { closeDetailDialog } from './lib/detail-dialog.js';
 import { computeChart, sensitivityCheck } from './lib/chartdata.js';
 import { esc } from './lib/format.js';
 import { listPeople, getPerson, savePerson, deletePerson, birthFromPerson, getLastPersonId, setLastPersonId, enableSync, setAiAccess, getAiAccess, setSharedGuest } from './lib/people.js';
@@ -14,7 +15,7 @@ import { paramsToBirth, birthToParams, shareUrl } from './lib/share.js';
 import { setupEntryView } from './views/entry.js';
 import { renderChartView, setupPanelTabs, rerenderBodygraph } from './views/chart.js';
 import { setupTransitView, renderTransits } from './views/transits.js';
-import { setupConnectionView, renderConnectionView, compareWithGuest } from './views/connection.js';
+import { setupConnectionView, renderConnectionView, compareWithGuest, rerenderConnectionGraphs } from './views/connection.js';
 import { setupTeamView, renderTeamView } from './views/team.js';
 
 // ==========================================
@@ -41,6 +42,7 @@ function toggleTheme() {
   // Bodygraph colors are computed at render time — refresh visible graphs
   if (currentData) {
     rerenderBodygraph();
+    rerenderConnectionGraphs();
     if (!document.getElementById('transits-view').classList.contains('hidden')) renderTransits();
   }
 }
@@ -51,6 +53,7 @@ function toggleTheme() {
 const VIEWS = ['chart', 'transits', 'connection', 'team'];
 
 function showView(view) {
+  closeDetailDialog();
   if (!currentData && view !== 'chart') return;
 
   document.querySelectorAll('.nav-link').forEach(l =>

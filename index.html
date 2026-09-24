@@ -110,7 +110,6 @@
         </div>
 
         <div class="info-column">
-          <div id="gate-detail" class="gate-detail hidden"></div>
           <div id="foundation-panel" class="panel"></div>
 
           <div class="panel-tabs">
@@ -136,11 +135,20 @@
           <input type="date" id="transit-date">
           <button id="transit-today" class="btn-secondary">Today</button>
         </div>
+        <div class="transit-view-toolbar">
+          <fieldset class="transit-mode-switch" aria-label="Chart view">
+            <label><input type="radio" name="transit-mode" value="overlay" checked><span>Birth chart + transits</span></label>
+            <label><input type="radio" name="transit-mode" value="transit-only"><span>Transit only</span></label>
+          </fieldset>
+          <div id="transit-graph-legend" class="transit-graph-legend" aria-label="Activation sources"></div>
+        </div>
         <div class="transit-layout">
-          <div id="transit-bodygraph" class="bodygraph-container transit-graph"></div>
+          <div class="chart-column">
+            <div id="transit-bodygraph" class="bodygraph-container transit-graph"></div>
+          </div>
           <div id="transit-content" class="transit-content"></div>
         </div>
-        <p class="panel-intro" style="margin-top:8px">Dashed rings mark gates activated by the transiting planets on the chosen date.</p>
+
       </div>
     </section>
 
@@ -202,6 +210,8 @@
       <span>No account · no tracking · charts stay on your device</span>
     </footer>
   </div>
+
+  <div id="gate-detail" class="gate-detail hidden"></div>
 
   <script type="module" src="/src/main.js"></script>
 </body>
