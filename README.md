@@ -17,6 +17,7 @@ for free, calculated precisely, in an interface designed to be calm rather than 
 - **Incarnation Cross** — canonical naming with the gates quartet, plus the Gene Keys
   activation sequence
 - **Transits** — any date overlaid on your chart, with channel completions
+- **Transit timeline** — explore gate, channel and center activation intervals, with calendar ranges and an interactive bodygraph; see [the timeline guide](docs/transit-timeline.md)
 - **Connection charts** — electromagnetic / companionship / compromise / dominance between two people
 - **Team analysis** — Penta roles and group dynamics
 - **Birth-time reliability check** — see honestly whether a ±15 minute error would change your chart

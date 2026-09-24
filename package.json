@@ -8,6 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "node --test tests/*.test.js",
+    "test:timeline": "node --test tests/line-fixing.test.js tests/timeline-duration.test.js tests/timeline-presets.test.js tests/timeline-ruler.test.js tests/timeline-viewport.test.js tests/transit-timeline.test.js",
+    "e2e:timeline": "node tests/timeline-e2e.mjs && node tests/timeline-gestures-e2e.mjs",
     "e2e": "node tests/e2e.mjs"
   },
   "dependencies": {

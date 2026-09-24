@@ -1,0 +1,53 @@
+/** Replace through the feature's `messages` option; never read a skin or DOM. */
+export const en = {
+  title: 'Transit timeline', eyebrow: 'EXPLORE THROUGH TIME',
+  intro: 'Move through time. See what changes, and how long it stays.',
+  selected: 'Selected moment', person: 'Chart', date: 'Date', time: 'Time', zone: 'Timezone',
+  now: 'Now', range: 'Timeline range', year1: '1 year', pastYear1: 'Past year', hours24: '24 hours', days3: '3 days', days7: '7 days', days28: '28 days',
+  overlay: 'Birth chart + transits', sky: 'Transit only', mode: 'Chart view',
+  previous: 'Previous gate change', next: 'Next gate change', earlier: 'Earlier window', later: 'Later window',
+  scrub: 'Selected time', scrubHelp: 'Drag to explore · Arrow keys: 1 minute · Shift + arrow: 1 hour',
+  tracks: 'Activation windows', tracksIntro: 'Each bar shows when an activation is present.',
+  filter: 'Show', all: 'All', centers: 'Centers', channels: 'Channels', gates: 'Gates',
+  center: 'Center', channel: 'Channel', gate: 'Gate',
+  search: 'Find a center, channel or gate', onlyChanges: 'Changes only',
+  natal: 'Birth chart', transit: 'Transit', completed: 'Channel completed by transit', both: 'Same gate: birth + transit',
+  loading: 'Calculating activation windows… {percent}%',
+  loadingTitle: 'Calculating your timeline', loadingHint: 'Longer ranges may take a little more time.', ready: '{count} rows · {events} gate changes',
+  noRows: 'No matching activations in this window.',
+  error: 'Could not calculate this window. Try a shorter range or reload.', retry: 'Retry',
+  empty: 'Choose a birth chart to explore its timeline.',
+  planets: 'Transiting planets', currentState: 'At this moment',
+  centerCount: 'Defined centers', channelCount: 'Complete channels', gateCount: 'Active gates',
+  detailHint: 'Select a bar to see its timing. Select a row symbol to open chart details.',
+  start: 'Starts', end: 'Ends', duration: 'Duration within the selected range',
+  before: 'Already active at the start of the calculated range', after: 'Still active at the end of the calculated range',
+  jump: 'View this interval', inspect: 'Open chart details', close: 'Close timing details',
+  estimated: 'Transition times are estimates. Bars clipped at the window edges may continue beyond it.',
+  sampling: 'Scanned every minute; detected changes refined to 1 second. Brief reversals between samples may be missed.',
+  fold: 'This local time occurs twice. Choose its UTC offset.', gap: 'This local time does not exist in that timezone.',
+  invalid: 'Enter a valid date, time and IANA timezone.', chooseOffset: 'UTC offset',
+  hoursMinutes: '{hours}h {minutes}m',
+  durationDay: '{count} day', durationDays: '{count} days',
+  durationHour: '{count} hour', durationHours: '{count} hours',
+  durationMinute: '{count} minute', durationMinutes: '{count} minutes',
+  durationUnderMinute: 'Less than 1 minute', durationZero: 'No duration',
+  legend: 'Activation sources',
+  design: 'Design', personality: 'Personality', birthPlanets: 'Birth activations',
+  searchShort: 'Search', changesShort: 'Changes', centersShort: 'Centers',
+  timingDetails: 'Activation interval', timingShort: 'Transit interval', transitPlanets: 'Transit activations',
+  beforeShort: 'Started earlier', afterShort: 'Ends later', durationShort: 'Duration',
+  fixing_exalted: 'Exaltation', fixing_detriment: 'Detriment', fixing_juxtaposed: 'Juxtaposition',
+  fixing_none: 'Unfixed', fixing_unknown: 'Rule awaiting verification',
+  natalFixing: 'Natal line fixing', transitFixing: 'Transit line fixing', combinedFixing: 'Birth + transit line fixing',
+  temporaryFixing: 'Temporary transit change',
+  zoomIn: 'Zoom in', zoomOut: 'Zoom out', zoom: 'Timeline range', hours1: '1 hour', hours6: '6 hours', customRange: 'Custom',
+  gestures: 'Swipe sideways to move time · Pinch to zoom · Drag the tracks to select a moment',
+  timelineHelp: 'Arrow keys: 1 minute · Shift + arrow: 1 hour · + / −: zoom',
+};
+
+export function translator(messages = {}) {
+  const dictionary = { ...en, ...messages };
+  return (key, values = {}) => String(dictionary[key] ?? key)
+    .replace(/\{(\w+)\}/g, (_, name) => String(values[name] ?? `{${name}}`));
+}
