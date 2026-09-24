@@ -964,9 +964,10 @@ body {
 .bodygraph-svg.bg-dimmed .bg-center:not(.bg-lit) { opacity: 0.35; }
 
 .bg-tooltip {
-  position: absolute;
+  position: fixed;
   z-index: 50;
-  max-width: 260px;
+  width: max-content;
+  max-width: min(260px, calc(100vw - 16px));
   padding: 8px 11px;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
@@ -1324,6 +1325,15 @@ body {
    ============================================= */
 
 body.modal-open { overflow: hidden; }
+
+/* Transit details use the same warm accent as the graph rings. */
+.gate-detail-transits {
+  border-left: 2px solid var(--accent);
+  padding: 8px 12px;
+  margin: 12px 0;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
 
 .gate-detail:not(.hidden) {
   position: fixed;

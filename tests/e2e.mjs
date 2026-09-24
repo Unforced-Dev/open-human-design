@@ -132,8 +132,9 @@ await check('centers are interactive: hover lights, click opens center detail, p
   await page.click('.bg-center[data-center="throat"]');
   await page.waitForSelector('#gate-detail .center-detail-card[data-center="throat"]', { timeout: 3000 });
   const txt = await page.textContent('#gate-detail .center-detail-card');
-  if (!/Throat Center/.test(txt)) throw new Error('center detail title missing: ' + txt.slice(0, 80));
+  if (!/Throat/.test(txt)) throw new Error('center detail title missing: ' + txt.slice(0, 80));
   if (!(await page.$('#gate-detail .gate-chip'))) throw new Error('center detail gate chips missing');
+  await page.keyboard.press('Escape');
   // Reverse: hovering the Centers-panel card lights that center on the graph.
   await page.click('.panel-tab[data-panel="centers"]');
   await page.waitForSelector('.center-card[data-center="g"]', { timeout: 3000 });
@@ -172,6 +173,47 @@ await check('transits view renders with overlay graph', async () => {
   if (!/Transit Sun/.test(content)) throw new Error(content.slice(0, 120));
 });
 
+await check('transit details open outside the hidden natal view and retain their context', async () => {
+  await page.fill('#transit-date', '2026-09-23');
+  await page.locator('#transit-date').press('Tab');
+  await page.click('#transit-bodygraph .bg-gate[data-gate="20"]');
+  await page.waitForSelector('#gate-detail:not(.hidden)', { timeout: 3000 });
+  const text = await page.textContent('#gate-detail');
+  if (!/Transit Uranus/.test(text) || !/20\.6/.test(text)) throw new Error('transit activation missing');
+  if (!await page.$eval('#transit-bodygraph .bg-gate[data-gate="20"]', el => el.classList.contains('bg-lit')))
+    throw new Error('transit graph selection was not pinned');
+  await page.click('#gate-detail [data-lens="iching"]');
+  if (!/Line 6/.test(await page.textContent('#lens-content'))) throw new Error('transit line reading missing');
+  await page.click('#gate-detail [data-lens="hd"]');
+  await page.keyboard.press('Escape');
+  await page.waitForSelector('#gate-detail', { state: 'hidden' });
+  await page.click('#transit-bodygraph .bg-center[data-center="throat"]');
+  await page.waitForSelector('#gate-detail .center-detail-card');
+  await page.click('#gate-detail .gate-chip[data-gate="20"]');
+  if (!/Transit Uranus/.test(await page.textContent('#gate-detail'))) throw new Error('context lost on center-to-gate navigation');
+  await page.click('#gate-detail .gate-detail-back');
+  await page.waitForSelector('#gate-detail .center-detail-card');
+  await page.click('#gate-detail', { position: { x: 5, y: 5 } });
+  await page.waitForSelector('#gate-detail', { state: 'hidden' });
+  if (await page.$eval('body', el => el.classList.contains('modal-open'))) throw new Error('scroll lock survived dismissal');
+});
+
+await check('coexisting graphs resolve all paints within their own SVG', async () => {
+  const problems = await page.$$eval('.bodygraph-svg', graphs => {
+    const ids = graphs.flatMap(svg => [...svg.querySelectorAll('[id]')].map(e => e.id));
+    const problems = ids.filter((id, i) => ids.indexOf(id) !== i);
+    for (const svg of graphs) {
+      for (const el of svg.querySelectorAll('[fill^="url(#"]')) {
+        const id = el.getAttribute('fill').slice(5, -1);
+        if (!svg.querySelector(`[id="${id}"]`)) problems.push(id);
+      }
+      if (svg.querySelectorAll('.bg-integration-span').length !== 2) problems.push('missing Integration span');
+    }
+    return problems;
+  });
+  if (problems.length) throw new Error(problems.join(', '));
+});
+
 // --- Connection with manual person ---
 // Shared place-search helper (Connection / Team): type → pick first result.
 async function pickPlace(scope, query) {
@@ -203,6 +245,8 @@ await check('connection compare works (place search resolves tz)', async () => {
   await page.waitForSelector('#conn-detail:not(.hidden) .gate-detail-card', { timeout: 3000 });
   if (!/Carried by/.test(await page.textContent('#conn-detail')))
     throw new Error('composite gate detail did not render');
+  await page.keyboard.press('Escape');
+  await page.waitForSelector('#conn-detail', { state: 'hidden' });
 });
 
 // --- Team using manual rows with place search ---

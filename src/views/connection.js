@@ -3,6 +3,7 @@
  * chart; Person B comes from saved people or a quick manual entry.
  */
 
+import { openDetailDialog, closeDetailDialog } from '../lib/detail-dialog.js';
 import { compareHumanDesign, GATES, CHANNELS } from 'natalengine';
 import { renderBodygraph } from '../bodygraph.js';
 import { computeChart } from '../lib/chartdata.js';
@@ -12,6 +13,13 @@ import { esc } from '../lib/format.js';
 import { getCurrentChart } from './chart.js';
 
 let placeB = null;
+let lastComparison = null;
+
+export function rerenderConnectionGraphs() {
+  if (lastComparison && lastComparison[1] === getCurrentChart()) {
+    renderConnectionContent(...lastComparison);
+  }
+}
 
 export function setupConnectionView() {
   document.getElementById('conn-calculate').addEventListener('click', runComparison);
@@ -124,6 +132,8 @@ const CONN_TYPES = [
 ];
 
 function renderConnectionContent(comparison, a, b) {
+  closeDetailDialog();
+  lastComparison = [comparison, a, b];
   const container = document.getElementById('connection-content');
   const cc = comparison.connectionChart;
   const nameA = a.birth.name || 'You';
@@ -238,13 +248,8 @@ function renderConnectionContent(comparison, a, b) {
   const whoName = (owner) => owner === 'both' ? `${nameA} + ${nameB}`
     : owner === 'a' ? nameA : owner === 'b' ? nameB : 'Neither of you';
 
-  function closeBtn() {
-    detail.querySelector('.gate-detail-close')?.addEventListener('click', () => {
-      detail.classList.add('hidden');
-      api?.setPinned?.(null);
-    });
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    detail.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'nearest' });
+  function openDetail() {
+    openDetailDialog(detail, () => api?.setPinned?.(null));
   }
 
   function showCompositeGate(g) {
@@ -272,7 +277,7 @@ function renderConnectionContent(comparison, a, b) {
       </div>`;
     detail.classList.remove('hidden');
     api.setPinned?.({ kind: 'gate', id: g });
-    closeBtn();
+    openDetail();
   }
 
   function showCompositeCenter(key) {
@@ -294,7 +299,7 @@ function renderConnectionContent(comparison, a, b) {
       </div>`;
     detail.classList.remove('hidden');
     api.setPinned?.({ kind: 'center', id: key });
-    closeBtn();
+    openDetail();
   }
 
   api = renderBodygraph(container.querySelector('#conn-composite'), a.chart, {

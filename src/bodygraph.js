@@ -14,6 +14,9 @@
 
 import { GATE_PATHS, CENTER_SHAPES, GATE_CIRCLE_POSITIONS } from 'natalengine/bodygraph-data';
 import { GATES, CHANNELS } from 'natalengine';
+import { INTEGRATION_SPAN, INTEGRATION_JOINED_PATHS, INTEGRATION_LOWER_BEND_PATHS, integrationSpanGates } from './lib/bodygraph-integration.js';
+
+let graphSequence = 0;
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -113,6 +116,8 @@ function palette() {
  * @returns {{ highlightGate: (g: number|null) => void }}
  */
 export function renderBodygraph(container, chart, opts = {}) {
+  const graphId = ++graphSequence;
+  const paint = name => `bg-${graphId}-${name}`;
   const interactive = !opts.compact;
   const showColumns = !opts.compact && opts.planetColumns !== false && !opts.composite;
   const animate = opts.animate !== false && !opts.compact;
@@ -214,7 +219,7 @@ export function renderBodygraph(container, chart, opts = {}) {
   // Stripe pattern for gates activated by both personality and design
   const defs = svgEl('defs');
   const pattern = svgEl('pattern', {
-    id: 'bg-stripe-both', width: '8', height: '8',
+    id: paint('stripe-both'), width: '8', height: '8',
     patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)'
   });
   pattern.appendChild(svgEl('rect', { width: '8', height: '8', fill: colors.personality }));
@@ -234,7 +239,7 @@ export function renderBodygraph(container, chart, opts = {}) {
   const coreAmt = isDark() ? 0.08 : 0.17;
   if (!composite) {
     for (const [key, color] of Object.entries(centerColors())) {
-      const grad = svgEl('radialGradient', { id: `bg-cg-${key}`, cx: '0.5', cy: '0.36', r: '0.78' });
+      const grad = svgEl('radialGradient', { id: paint(`cg-${key}`), cx: '0.5', cy: '0.36', r: '0.78' });
       grad.appendChild(svgEl('stop', { offset: '0', 'stop-color': lighten(color, coreAmt) }));
       grad.appendChild(svgEl('stop', { offset: '1', 'stop-color': color }));
       defs.appendChild(grad);
@@ -244,21 +249,21 @@ export function renderBodygraph(container, chart, opts = {}) {
     const colA = composite.colorA, colB = composite.colorB;
     const colBridged = composite.colorBridged;
     // Two-tone stripe for gates both people carry (companionship at gate level).
-    const ab = svgEl('pattern', { id: 'bg-stripe-ab', width: '8', height: '8', patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' });
+    const ab = svgEl('pattern', { id: paint('stripe-ab'), width: '8', height: '8', patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' });
     ab.appendChild(svgEl('rect', { width: '8', height: '8', fill: colA }));
     ab.appendChild(svgEl('rect', { width: '4', height: '8', fill: colB }));
     defs.appendChild(ab);
     const radial = (id, color) => {
-      const grad = svgEl('radialGradient', { id, cx: '0.5', cy: '0.36', r: '0.78' });
+      const grad = svgEl('radialGradient', { id: paint(id), cx: '0.5', cy: '0.36', r: '0.78' });
       grad.appendChild(svgEl('stop', { offset: '0', 'stop-color': lighten(color, coreAmt) }));
       grad.appendChild(svgEl('stop', { offset: '1', 'stop-color': color }));
       defs.appendChild(grad);
     };
-    radial('bg-cc-a', colA);
-    radial('bg-cc-b', colB);
-    radial('bg-cc-bridged', colBridged);
+    radial('cc-a', colA);
+    radial('cc-b', colB);
+    radial('cc-bridged', colBridged);
     // Both define it → a diagonal blend from one person's hue to the other's.
-    const both = svgEl('linearGradient', { id: 'bg-cc-both', x1: '0', y1: '0', x2: '1', y2: '1' });
+    const both = svgEl('linearGradient', { id: paint('cc-both'), x1: '0', y1: '0', x2: '1', y2: '1' });
     both.appendChild(svgEl('stop', { offset: '0', 'stop-color': colA }));
     both.appendChild(svgEl('stop', { offset: '1', 'stop-color': colB }));
     defs.appendChild(both);
@@ -268,14 +273,14 @@ export function renderBodygraph(container, chart, opts = {}) {
   const gateFill = (gateNum) => {
     if (composite) {
       const o = gateOwner(gateNum);
-      if (o === 'both') return 'url(#bg-stripe-ab)';
+      if (o === 'both') return `url(#${paint('stripe-ab')})`;
       if (o === 'a') return composite.colorA;
       if (o === 'b') return composite.colorB;
       return colors.inactive;
     }
     const p = personalityGates.has(gateNum);
     const d = designGates.has(gateNum);
-    if (p && d) return 'url(#bg-stripe-both)';
+    if (p && d) return `url(#${paint('stripe-both')})`;
     if (p) return colors.personality;
     if (d) return colors.design;
     return colors.inactive;
@@ -283,27 +288,50 @@ export function renderBodygraph(container, chart, opts = {}) {
   const centerFill = (key, defined) => {
     if (composite) {
       const o = centerOwner(key);
-      return o ? `url(#bg-cc-${o})` : colors.undefinedCenter;
+      return o ? `url(#${paint(`cc-${o}`)})` : colors.undefinedCenter;
     }
-    return defined ? `url(#bg-cg-${key})` : colors.undefinedCenter;
+    return defined ? `url(#${paint(`cg-${key}`)})` : colors.undefinedCenter;
   };
 
   // --- Channel paths (one per gate = half-channel) ---
   const pathGroup = svgEl('g', { class: `bg-paths${animate ? ' bg-reveal-paths' : ''}` });
   const gatePathEls = {};
+  const integrationChannels = (composite ? compChannels : chart.channels || [])
+    .filter(ch => ch.gates.every(g => [10, 20, 34, 57].includes(g)));
+  const joinedGates = new Set(integrationChannels.flatMap(ch => ch.gates));
+  const spanGates = integrationSpanGates(integrationChannels);
+  const joinedPaths = joinedGates.has(34) && joinedGates.has(57) && !spanGates[0].length
+    ? INTEGRATION_LOWER_BEND_PATHS : INTEGRATION_JOINED_PATHS;
+  const spanEls = INTEGRATION_SPAN.map((d, i) => {
+    const gates = spanGates[i];
+    const first = gates.some(g => composite ? aGates.has(g) : personalityGates.has(g));
+    const second = gates.some(g => composite ? bGates.has(g) : designGates.has(g));
+    const fill = first && second ? `url(#${paint(composite ? 'stripe-ab' : 'stripe-both')})`
+      : first ? (composite ? composite.colorA : colors.personality)
+      : second ? (composite ? composite.colorB : colors.design) : colors.inactive;
+    const path = svgEl('path', {
+      d, fill, class: 'bg-gate-path bg-integration-span',
+      opacity: gates.length ? '1' : isDark() ? '0.55' : '0.38',
+      'pointer-events': 'none'
+    });
+    pathGroup.appendChild(path);
+    return path;
+  });
   for (const [gateStr, pathData] of Object.entries(GATE_PATHS)) {
     const gateNum = parseInt(gateStr);
     const isActive = activeGates.has(gateNum);
     const inactiveOpacity = isDark() ? '0.55' : '0.38';
     const path = svgEl('path', {
-      d: pathData,
+      d: joinedGates.has(gateNum) ? joinedPaths[gateNum] || pathData : pathData,
       fill: gateFill(gateNum),
       opacity: isActive ? '1' : inactiveOpacity,
       'data-gate': gateNum,
       class: 'bg-gate-path'
     });
     gatePathEls[gateNum] = path;
-    pathGroup.appendChild(path);
+    // Gray crossing paths must stay behind colored spans and active gates.
+    if (isActive) pathGroup.appendChild(path);
+    else pathGroup.prepend(path);
   }
   svg.appendChild(pathGroup);
 
@@ -421,7 +449,7 @@ export function renderBodygraph(container, chart, opts = {}) {
   }
 
   function renderHighlight(sel) {
-    for (const node of Object.values(gatePathEls)) node.classList.remove('bg-lit');
+    for (const node of [...Object.values(gatePathEls), ...spanEls]) node.classList.remove('bg-lit');
     for (const node of Object.values(gateCircleEls)) node.classList.remove('bg-lit');
     for (const node of Object.values(centerPathEls)) node.classList.remove('bg-lit');
     if (!sel) { svg.classList.remove('bg-dimmed'); return { gates: [], centers: [] }; }
@@ -431,6 +459,9 @@ export function renderBodygraph(container, chart, opts = {}) {
       gatePathEls[g]?.classList.add('bg-lit');
       gateCircleEls[g]?.classList.add('bg-lit');
     }
+    spanEls.forEach((path, i) => {
+      if (spanGates[i].some(g => gates.has(g))) path.classList.add('bg-lit');
+    });
     for (const ck of centers) centerPathEls[ck]?.classList.add('bg-lit');
     return { gates: [...gates], centers: [...centers] };
   }
@@ -513,9 +544,17 @@ export function renderBodygraph(container, chart, opts = {}) {
     }
 
     function moveTooltip(evt) {
-      const rect = container.getBoundingClientRect();
-      tooltip.style.left = `${evt.clientX - rect.left + 12}px`;
-      tooltip.style.top = `${evt.clientY - rect.top + 12}px`;
+      // A fixed tooltip escapes the sticky chart column's scroll clipping.
+      // Flip near viewport edges, then clamp so its full contents stay visible.
+      const gap = 12, margin = 8;
+      const { width, height } = tooltip.getBoundingClientRect();
+      const { clientWidth, clientHeight } = document.documentElement;
+      const x = evt.clientX + gap + width <= clientWidth - margin
+        ? evt.clientX + gap : evt.clientX - width - gap;
+      const y = evt.clientY + gap + height <= clientHeight - margin
+        ? evt.clientY + gap : evt.clientY - height - gap;
+      tooltip.style.left = `${Math.max(margin, Math.min(x, clientWidth - width - margin))}px`;
+      tooltip.style.top = `${Math.max(margin, Math.min(y, clientHeight - height - margin))}px`;
     }
 
     svg.addEventListener('pointerover', (evt) => {
