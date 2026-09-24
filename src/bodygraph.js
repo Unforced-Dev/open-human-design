@@ -531,7 +531,13 @@ export function renderBodygraph(container, chart, opts = {}) {
       if (composite) return compositeGateTooltip(gateNum);
       const gate = GATES[gateNum];
       const acts = [];
-      if (transit) acts.push(`<span style="color:${transitColor}">${TRANSIT_SOURCE_LABELS[transit.gateSource(gateNum)]}</span>`);
+      if (transit) {
+        const source = transit.gateSource(gateNum);
+        const label = source === 'both'
+          ? '<span class="bg-tt-source-birth">Birth chart</span><span class="bg-tt-source-plus"> + </span><span class="bg-tt-source-transit">transit</span>'
+          : TRANSIT_SOURCE_LABELS[source];
+        acts.push(`<span class="bg-tt-source ${source}">${label}</span>`);
+      }
       for (const { planet, line } of (transit?.mode === 'transit-only' ? [] : designGates.get(gateNum) || [])) {
         acts.push(`<span class="bg-tt-design">${PLANET_GLYPHS[planet]} ${gateNum}.${line}</span>`);
       }

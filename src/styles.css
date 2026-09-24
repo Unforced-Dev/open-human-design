@@ -1047,6 +1047,11 @@ body {
 .bg-tooltip strong { font-size: 12.5px; }
 
 .bg-tt-acts { margin-top: 3px; display: flex; flex-wrap: wrap; gap: 6px; }
+.bg-tooltip .bg-tt-source.natal, .bg-tooltip .bg-tt-source.inactive { color: var(--text-secondary); }
+.bg-tooltip .bg-tt-source.transit { color: var(--transit-source-text); }
+.bg-tooltip .bg-tt-source.both { color: var(--text-secondary); }
+.bg-tooltip .bg-tt-source.both .bg-tt-source-transit { color: var(--transit-source-text); }
+.bg-tooltip .bg-tt-source.completed { color: var(--accent); }
 .bg-tt-design { color: var(--design); font-weight: 600; }
 .bg-tt-personality { color: var(--personality); font-weight: 600; }
 .bg-tt-channel { margin-top: 3px; color: var(--text-secondary); font-size: 11px; }
