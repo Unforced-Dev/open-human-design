@@ -1,0 +1,17 @@
+{
+  "en": {
+    "connection.heading": "Connection",
+    "connection.namePlaceholder": "Person B",
+    "footer.poweredSuffix": ""
+  },
+  "zh-CN": {
+    "connection.heading": "关系合图",
+    "connection.namePlaceholder": "另一位的姓名",
+    "footer.poweredSuffix": "驱动"
+  },
+  "zh-Hant": {
+    "connection.heading": "關係合圖",
+    "connection.namePlaceholder": "另一位的姓名",
+    "footer.poweredSuffix": "提供技術支援"
+  }
+}

@@ -1,0 +1,210 @@
+/* Local layout only; colors continue to come from the existing skin tokens. */
+.tl {
+  --tl-surface: var(--bg-elevated); --tl-line: var(--border);
+  --tl-transit: var(--transit-source); --tl-transit-ink: var(--transit-source-contrast);
+  --tl-birth: var(--text-secondary); --tl-cursor-color: var(--accent-strong);
+  --tl-date-even: color-mix(in srgb, var(--tl-surface) 85%, var(--text-secondary));
+  --tl-date-odd: color-mix(in srgb, var(--tl-surface) 92%, var(--tl-transit));
+  --tl-day-even: color-mix(in srgb, var(--bg-sunken) 13%, transparent);
+  --tl-day-odd: color-mix(in srgb, var(--tl-transit) 6%, transparent);
+  --tl-day-divider: color-mix(in srgb, var(--text-secondary) 12%, transparent);
+  --tl-label-width: 40px; --tl-row-height: 28px;
+  --tl-canvas-height: clamp(490px, calc(100dvh - 212px), 710px);
+  max-width: 1500px; margin: 0 auto; padding: 14px 24px 30px; color: var(--text);
+}
+.tl [hidden] { display: none !important; }
+.tl-empty-state { display: none; }
+.tl-no-chart > :not(.tl-empty-state) { display: none; }
+.tl-no-chart .tl-empty-state { display: block; }
+.tl-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.tl button, .tl input, .tl select { font: inherit; color: inherit; }
+.tl button { cursor: pointer; }
+.tl button:disabled { opacity: .4; cursor: default; }
+.tl button[data-action]:not(.gate-detail-close), .tl select, .tl input:not([type="checkbox"]) {
+  border: 1px solid var(--tl-line); border-radius: 5px; background: var(--tl-surface);
+  min-height: 32px; padding: 4px 8px; font-size: 12px; max-width: 100%;
+}
+.tl button[data-action]:not(.gate-detail-close):not(:disabled):hover { border-color: var(--transit-source-text); background: var(--transit-source-soft); }
+.tl :focus-visible { outline: 2px solid var(--tl-cursor-color); outline-offset: 2px; }
+.tl label { display: flex; flex-direction: column; gap: 3px; font-size: 10px; font-weight: 500; color: var(--text-secondary); }
+.tl-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 10px; }
+.tl h2 { font-family: var(--font-serif); font-size: 23px; line-height: 1.25; font-weight: 500; margin: 0; }
+.tl-person { font-size: 12px; overflow-wrap: anywhere; max-width: 30%; color: var(--text-secondary); }
+.tl-toolbar { display: flex; align-items: end; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.tl-zone { flex: 1; min-width: 130px; max-width: 230px; }
+.tl-time-error { font-size: 12px; }
+.tl-time-error:not(:empty), .tl-fold:not([hidden]) { margin: 8px 0; padding: 8px; border-left: 3px solid var(--accent); background: var(--accent-soft); }
+.tl-fold select { align-self: start; }
+.tl-workspace { display: grid; grid-template-columns: minmax(350px, .95fr) minmax(0,1.2fr); gap: 16px; align-items: start; }
+.tl-stage { position: sticky; top: 72px; z-index: 1; min-width: 0; background: var(--tl-surface); border: 1px solid var(--tl-line); border-radius: 8px; }
+.tl-graph-panel { position: relative; min-width: 0; height: var(--tl-canvas-height); }
+.tl-selected { position: absolute; top: 9px; left: 10px; z-index: 2; pointer-events: none; }
+.tl-moment { display: flex; flex-direction: column; font-size: 11px; line-height: 1.5; font-variant-numeric: tabular-nums; }
+.tl-moment-date { font-weight: 600; }
+.tl-moment-time { font-size: 10px; color: var(--text-secondary); }
+.tl .tl-graph { height: 100%; padding: 12px 8px 6px; background: transparent; border: 0; box-shadow: none; }
+.tl .tl-graph svg { display: block; width: 100%; height: 100%; }
+.tl-legend-disclosure { position: absolute; top: 10px; right: 10px; z-index: 5; font-size: 10px; color: var(--text-secondary); }
+.tl-legend-disclosure summary { cursor: pointer; list-style: none; text-align: right; }
+.tl-legend-disclosure summary::after { content: ' ⓘ'; }
+.tl-legend { position: absolute; right: 0; top: 22px; width: max-content; max-width: 240px; padding: 10px 12px; background: var(--tl-surface); box-shadow: var(--shadow-lg); border: 1px solid var(--tl-line); border-radius: 5px; display: grid; gap: 7px; font-size: 10px; }
+.tl-legend > span { display: inline-flex; gap: 6px; align-items: center; }
+.tl-legend i { display: inline-block; width: 16px; height: 7px; border-radius: 2px; background: var(--tl-transit); }
+.tl-legend [data-source="natal"] i { background: var(--tl-birth); }
+.tl-legend [data-source="completed"] i { background: linear-gradient(90deg, var(--tl-birth) 50%, var(--tl-transit) 50%); }
+.tl-legend [data-source="both"] i { border: 1px solid var(--tl-birth); background: repeating-linear-gradient(135deg,var(--tl-transit) 0 3px,var(--tl-surface) 3px 5px); }
+.tl-planet-column { position: absolute; top: 62px; z-index: 2; font-variant-numeric: tabular-nums; }
+.tl-transit-column { left: 9px; width: 63px; }
+.tl-birth-column { right: 8px; width: 130px; }
+.tl-birth-head, .tl-birth-row { display: grid; grid-template-columns: minmax(0,1fr) 14px minmax(0,1fr); column-gap: 2px; align-items: center; }
+.tl-birth-head { height: 22px; align-items: start; }
+.tl-birth-head > :first-child { text-align: right; padding-right: 1px; }
+.tl-birth-head > :last-child { text-align: left; padding-left: 1px; }
+.tl-birth-head > span { min-width: 0; line-height: 18px; }
+.tl .tl-birth-head .bg-planets-head { display: block; margin-bottom: 4px; overflow: hidden; white-space: nowrap; text-transform: none; letter-spacing: 0; }
+.tl .tl-birth-head-en .bg-planets-head { font-size: 8px; }
+.tl-birth-row { height: 17px; }
+.tl .tl-birth-value { min-width: 0; }
+.tl .tl-birth-value[data-side="design"] { justify-content: flex-end; }
+.tl .tl-birth-value[data-side="personality"] { justify-content: flex-start; }
+.tl .tl-birth-value.bg-planets-design .bg-planet-act { color: var(--design); }
+.tl .tl-birth-value.bg-planets-personality .bg-planet-act { color: var(--personality); }
+.tl-birth-glyph { width: 14px; justify-self: center; opacity: .75; text-align: center; line-height: 1; }
+.tl .bg-planets-head { font-size: 9px; letter-spacing: .02em; line-height: 18px; margin-bottom: 4px; }
+.tl-transit-column .bg-planets-head, .tl-transit-column .bg-planet-act { color: var(--transit-source-text); }
+.tl-transit-column .bg-planets-head { padding-left: 15px; }
+.tl .bg-planet-row { height: 17px; line-height: 17px; padding: 0 1px; gap: 2px; font-size: 11px; cursor: pointer; }
+.tl .bg-planet-glyph { flex: 0 0 12px; font-size: 12px; }
+.tl .bg-planet-act { min-width: 0; font-variant-numeric: tabular-nums; font-weight: 600; }
+.tl .bg-planets { min-width: 0; }
+.tl .tl-transit-column.bg-planets { padding-top: 0; gap: 0; }
+.tl-fixing-mark { flex: 0 0 7px; width: 7px; font-size: 7px; line-height: 7px; white-space: normal; overflow-wrap: anywhere; text-align: center; color: var(--text-secondary); }
+.tl-explorer, .tl-tracks-panel { min-width: 0; }
+.tl-tracks-panel { position: relative; z-index: 0; display: flex; flex-direction: column; height: calc(var(--tl-canvas-height) + 2px); border: 1px solid var(--tl-line); border-radius: 8px; background: var(--tl-surface); overflow: hidden; }
+.tl-table { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; background: var(--tl-surface); overscroll-behavior-x: contain; scrollbar-gutter: stable; }
+.tl-panel-header { display: grid; grid-template-columns: var(--tl-label-width) minmax(0,1fr); grid-template-rows: 32px 21px; position: sticky; top: 0; z-index: 4; background: var(--bg-sunken); border-bottom: 1px solid var(--tl-line); }
+.tl-kind { position: relative; grid-row: 1 / 3; grid-column: 1; justify-content: center; border-right: 1px solid var(--tl-line); }
+.tl-kind::after { content: ''; position: absolute; left: 50%; bottom: 10px; width: 5px; height: 5px; border-right: 1px solid currentColor; border-bottom: 1px solid currentColor; transform: translateX(-50%) rotate(45deg); pointer-events: none; }
+.tl .tl-kind select { appearance: none; width: 100%; height: 100%; min-width: 0; min-height: 30px; padding: 0 0 11px; border: 0; border-radius: 0; background: transparent; font-size: 9px; text-align: center; text-align-last: center; cursor: pointer; }
+.tl-compact-controls { grid-column: 2; display: flex; align-items: center; gap: 4px; padding: 2px 5px; min-width: 0; }
+.tl .tl-search { flex: 1; min-width: 30px; flex-direction: row; align-items: center; gap: 3px; }
+.tl-search svg, .tl-changes svg { flex: 0 0 13px; width: 13px; height: 13px; stroke: currentColor; stroke-width: 1.5; fill: none; }
+.tl .tl-search input { width: 100%; min-width: 0; min-height: 28px; padding: 2px; border: 0; background: transparent; font-size: 11px; }
+.tl .tl-compact-controls select { text-align: right; text-align-last: right; width: 64px; min-height: 28px; padding: 2px 3px; border: 0; background: transparent; font-size: 11px; }
+@supports (field-sizing: content) {
+  .tl .tl-compact-controls select { field-sizing: content; width: auto; min-width: 48px; max-width: 100px; flex-shrink: 0; }
+}
+.tl button.tl-changes[data-action] { display: inline-flex; align-items: center; gap: 3px; flex-shrink: 0; min-height: 28px; padding: 2px 5px; font-size: 10px; border: 0; background: transparent; color: var(--text-secondary); }
+.tl button.tl-changes[aria-pressed="true"] { color: var(--transit-source-text); background: var(--transit-source-soft); box-shadow: inset 0 -2px var(--tl-transit); }
+.tl-row { display: grid; grid-template-columns: var(--tl-label-width) minmax(0,1fr); }
+.tl-channel-symbol { font-size: 10px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tl-row { height: var(--tl-row-height); border-bottom: 1px solid var(--border-subtle); }
+.tl-row:last-child { border-bottom: 0; }
+.tl .tl-row-name { min-width: 0; border: 0; border-right: 1px solid var(--tl-line); background: var(--tl-surface); display: flex; align-items: center; justify-content: center; padding: 2px; color: var(--text-secondary); }
+.tl-row-name svg { width: 22px; height: 22px; fill: currentColor; }
+.tl-gate-symbol { font-size: 11px; font-weight: 600; border: 1px solid var(--tl-line); border-radius: 50%; min-width: 22px; height: 22px; line-height: 20px; text-align: center; }
+.tl-row-lit .tl-row-name, .tl .tl-row-name:hover { background: var(--accent-soft); }
+.tl .tl-row-active .tl-row-name { background: var(--accent-soft); box-shadow: inset 2px 0 var(--accent); }
+.tl .tl-row-active[data-active-source="transit"] .tl-row-name { background: var(--transit-source-soft); box-shadow: inset 2px 0 var(--tl-transit); }
+.tl .tl-row-active[data-active-source="both"] .tl-row-name { background: repeating-linear-gradient(135deg, var(--accent-soft) 0 5px, var(--transit-source-soft) 5px 10px); box-shadow: inset 2px 0 var(--tl-transit), inset 4px 0 var(--accent); }
+.tl .tl-row-active[data-active-source="completed"] .tl-row-name { background: var(--transit-source-soft); box-shadow: inset 2px 0 var(--tl-transit), inset 4px 0 var(--accent); }
+.tl-center-symbol { stroke: var(--text-secondary); stroke-width: .65px; }
+.tl-center-head, .tl-center-g { color: #e9d56b; }
+.tl-center-ajna { color: #a3c46c; }
+.tl-center-heart, .tl-center-sacral { color: #dd6356; }
+.tl-center-throat, .tl-center-spleen, .tl-center-solar, .tl-center-root { color: #c2a06b; }
+.tl-track { position: relative; min-width: 0; overflow: hidden; touch-action: pan-y; cursor: ew-resize; }
+.tl-track::after { content: ''; position: absolute; top: 0; bottom: 0; left: var(--tl-cursor); width: 1px; background: var(--tl-cursor-color); z-index: 3; pointer-events: none; }
+.tl-ticks { grid-column: 2; border-top: 1px solid var(--border-subtle); }
+.tl-ticks::after { width: 2px; }
+.tl-date-cell { position: absolute; z-index: 2; top: 0; height: 20px; line-height: 20px; font-size: 9px; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; color: var(--text-secondary); pointer-events: none; background: var(--tl-date-even); }
+.tl-date-cell[data-tone="1"] { background: var(--tl-date-odd); }
+.tl-date-label { position: absolute; left: 50%; transform: translateX(-50%); }
+.tl-day-band { position: absolute; top: 0; bottom: 0; z-index: 1; background: var(--tl-day-even); pointer-events: none; }
+.tl-day-band[data-tone="1"] { background: var(--tl-day-odd); }
+.tl-gridline { position: absolute; top: 0; bottom: 0; width: 1px; z-index: 1; background: var(--tl-day-divider); pointer-events: none; }
+.tl .tl-bar { position: absolute; top: 0; height: 100%; display: flex; align-items: center; min-width: 2px; overflow: hidden; border: 0 solid transparent; border-radius: 0; background: var(--tl-transit); color: var(--tl-transit-ink); font-size: 11px; line-height: 1.2; padding: 0; cursor: pointer; white-space: nowrap; text-align: left; }
+.tl-bar > span { position: relative; z-index: 2; padding: 0 7px; pointer-events: none; }
+.tl .tl-bar[data-source="natal"] { background: var(--tl-birth); color: var(--tl-surface); }
+.tl .tl-bar[data-source="completed"] { border-left: 5px solid var(--tl-birth); }
+.tl .tl-bar[data-source="both"] { background: repeating-linear-gradient(135deg, var(--tl-transit) 0 6px, var(--transit-source-soft) 6px 9px); }
+.tl .tl-bar:hover, .tl .tl-bar[aria-pressed="true"] { outline: 2px solid var(--text); outline-offset: -2px; z-index: 1; }
+.tl .tl-clipped-start { border-left-style: dashed; border-left-color: var(--text-secondary); border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.tl .tl-clipped-end { border-right-style: dashed; border-right-color: var(--text-secondary); border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.tl-empty { padding: 24px; color: var(--text-secondary); font-size: 13px; }
+.tl-calculation { position: absolute; inset: 54px 0 0; z-index: 5; display: grid; place-items: center; padding: 20px; pointer-events: none; }
+.tl-calculation[hidden] { display: none; }
+.tl-calculation-card { box-sizing: border-box; width: min(300px, 100%); min-width: 0; padding: 12px; text-align: center; pointer-events: auto; }
+.tl-load-status { display: block; font-size: 20px; font-weight: 500; color: var(--text); line-height: 1.4; }
+.tl-loading-percent { display: block; margin: 12px 0; font-size: 44px; font-weight: 600; line-height: 1.1; font-variant-numeric: tabular-nums; color: var(--transit-source-text); }
+.tl-calculation progress { display: block; appearance: none; width: 100%; height: 7px; overflow: hidden; border: 0; border-radius: 10px; background: var(--bg-sunken); accent-color: var(--tl-transit); }
+.tl-calculation progress::-webkit-progress-bar { background: var(--bg-sunken); border-radius: 10px; }
+.tl-calculation progress::-webkit-progress-value { background: var(--tl-transit); border-radius: 10px; }
+.tl-calculation progress::-moz-progress-bar { background: var(--tl-transit); border-radius: 10px; }
+.tl-loading-note { margin: 14px 0 0; color: var(--text-secondary); font-size: 13px; line-height: 1.5; }
+.tl-calculation[data-state="error"] .tl-loading-meter { display: none; }
+.tl-calculation [data-action="retry"] { margin-top: 16px; }
+/* Align gate identity/status with timing; complete planet data flows below. */
+.tl-detail-header { display: grid; grid-template-columns: minmax(0, 1fr); align-items: stretch; gap: 14px; margin-bottom: 8px; }
+.tl-detail-header.tl-detail-has-timing { grid-template-columns: minmax(0, 1fr) 176px; }
+.tl-detail-heading { min-width: 0; display: flex; flex-direction: column; }
+.tl-detail-heading > .detail-name { margin-bottom: 8px; }
+.tl-detail-statuses { margin-top: auto; display: grid; gap: 1px; }
+.tl-detail-activations { display: grid; gap: 0; margin-bottom: 12px; }
+.tl-detail-source.gate-detail-acts, .tl-detail-source.gate-detail-transits { padding: 0; margin: 0; border: 0; font-size: 13px; line-height: 1.65; }
+.tl-activation-label { color: var(--text-secondary); font-size: 10px; line-height: 1.4; }
+.tl-detail-activations .tl-activation-row { display: block; font-weight: 600; overflow-wrap: anywhere; }
+.tl-activation-transit { color: var(--transit-source-text); }
+.tl-detail-statuses .gate-detail-inactive { margin: 0; font-size: 10px; line-height: 1.4; font-style: normal; }
+.tl-detail-heading .center-detail-head { margin-bottom: 0; }
+.tl-detail-heading .lens-note { margin: 0 0 6px; }
+.tl-detail-timing { min-width: 0; display: flex; flex-direction: column; padding-left: 10px; border-left: 1px solid var(--border-subtle); font-size: 10px; line-height: 1.4; }
+.tl-timing-source { display: flex; justify-content: space-between; gap: 6px; color: var(--text-secondary); margin-bottom: 3px; }
+.tl-timing-source > span { cursor: help; }
+.tl-timing-values { flex: 1; display: grid; align-content: space-between; gap: 3px; margin: 0; }
+.tl-timing-values dt { color: var(--text-secondary); }
+.tl-timing-values dd { margin: 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.tl-timing-duration { display: flex; align-items: baseline; gap: 5px; margin-bottom: 3px; }
+.tl-timing-duration dd { font-size: 14px; font-weight: 500; }
+.tl-timing-boundary { position: relative; padding-left: 11px; }
+.tl-timing-boundary::before { content: ''; position: absolute; left: 1px; top: .45em; width: 4px; height: 4px; border: 1px solid var(--text-tertiary); border-radius: 50%; }
+.tl-timing-boundary + .tl-timing-boundary::after { content: ''; position: absolute; left: 3px; bottom: calc(100% - .45em); height: calc(100% - 2px); border-left: 1px solid var(--border-subtle); }
+.tl-timing-boundary dt { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+@media (max-width: 480px) {
+  .tl-detail-header.tl-detail-has-timing { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .tl-detail-timing { border-left: 0; border-top: 1px solid var(--border-subtle); padding: 8px 0 0; }
+}
+@media (max-width: 1050px) {
+  .tl { padding: 12px 16px 24px; --tl-canvas-height: clamp(490px, calc(100dvh - 212px), 620px); }
+  .tl-workspace { grid-template-columns: minmax(350px, .95fr) minmax(0, 1.2fr); gap: 12px; }
+  .tl-birth-column { width: 120px; right: 7px; }
+  .tl-transit-column { left: 7px; width: 57px; }
+  .tl-planet-column { top: 55px; }
+  .tl .bg-planet-row { font-size: 10px; height: 16px; line-height: 16px; gap: 2px; }
+  .tl-birth-row { height: 16px; }
+}
+@media (max-width: 740px) {
+  .tl-workspace { display: block; }
+  .tl { --tl-canvas-height: 430px; }
+  .tl-stage { position: static; margin-bottom: 12px; }
+  .tl-graph-panel { max-width: 500px; margin: auto; }
+  .tl-tracks-panel { height: 430px; }
+}
+@media (max-width: 440px) {
+  .tl { padding: 10px 10px 24px; --tl-canvas-height: 435px; }
+  .tl h2 { font-size: 21px; }
+  .tl-toolbar { display: grid; grid-template-columns: 1.15fr 1fr auto; gap: 7px; }
+  .tl-toolbar label { min-width: 0; }
+  .tl-toolbar .tl-zone { grid-column: 1 / 3; grid-row: 2; min-width: 0; max-width: none; }
+  .tl-toolbar label:last-child { grid-column: 1 / 3; grid-row: 3; }
+  .tl-toolbar > button { grid-column: 3; grid-row: 2; }
+  .tl-toolbar label:nth-child(2) { grid-column: 2 / 4; }
+  .tl-planet-column { top: 55px; }
+  .tl-birth-column { width: 118px; }
+  .tl .tl-graph { padding: 0 5px 2px; }
+  .tl .bg-planet-row { height: 15px; line-height: 15px; }
+  .tl-birth-row { height: 15px; }
+  .tl .bg-planet-glyph { flex-basis: 12px; font-size: 11px; }
+  .tl-row-name svg { width: 20px; height: 20px; }
+  .tl-bar > span { font-size: 10px; }
+}

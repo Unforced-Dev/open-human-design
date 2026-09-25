@@ -11,16 +11,18 @@
 
 import { searchPlaces, offsetForZone, formatOffset } from './location.js';
 import { esc } from './format.js';
+import { t, onLocaleChange } from './i18n.js';
+
 
 export function createPlaceSearch(mount, { placeholder = 'Birth place', getDateTime } = {}) {
   mount.classList.add('place-search');
   mount.innerHTML = `
     <div class="ps-place">
-      <input type="text" class="ps-input" placeholder="${esc(placeholder)}" autocomplete="off" aria-label="${esc(placeholder)}">
+      <input type="text" class="ps-input" placeholder="${esc(t(placeholder))}" autocomplete="off" aria-label="${esc(t(placeholder))}">
       <div class="ps-results hidden"></div>
     </div>
-    <input type="number" class="ps-manual hidden" placeholder="UTC offset, e.g. -6" min="-12" max="14" step="0.5" aria-label="UTC offset at birth">
-    <button type="button" class="ps-toggle">Enter UTC offset</button>
+    <input type="number" class="ps-manual hidden" placeholder="${esc(t('UTC offset, e.g. -6'))}" min="-12" max="14" step="0.5" aria-label="${esc(t('UTC offset at birth'))}">
+    <button type="button" class="ps-toggle">${t('Enter UTC offset')}</button>
     <div class="ps-chip hidden"></div>
   `;
   const place = mount.querySelector('.ps-place');
@@ -50,17 +52,17 @@ export function createPlaceSearch(mount, { placeholder = 'Birth place', getDateT
     if (manualMode) {
       const v = manual.value.trim();
       if (v === '') { chip.classList.add('hidden'); return; }
-      chip.textContent = `Manual offset · ${formatOffset(parseFloat(v) || 0)}`;
+      chip.textContent = `${t('Manual offset')} · ${formatOffset(parseFloat(v) || 0)}`;
       chip.classList.remove('hidden');
       return;
     }
     if (!selected) { chip.classList.add('hidden'); return; }
     const { date, time } = dateTime();
     const d = date || new Date().toISOString().split('T')[0];
-    const t = time || '12:00';
+    const birthTime = time || '12:00';
     try {
-      const off = offsetForZone(d, t, selected.timezone);
-      chip.textContent = `${selected.label} · ${formatOffset(off)} at birth`;
+      const off = offsetForZone(d, birthTime, selected.timezone);
+      chip.textContent = `${selected.label} · ${t('{offset} at birth', { offset: formatOffset(off) })}`;
       chip.classList.remove('hidden');
     } catch {
       chip.classList.add('hidden');
@@ -127,12 +129,24 @@ export function createPlaceSearch(mount, { placeholder = 'Birth place', getDateT
     manualMode = !manualMode;
     place.classList.toggle('hidden', manualMode);
     manual.classList.toggle('hidden', !manualMode);
-    toggle.textContent = manualMode ? 'Search birth place' : 'Enter UTC offset';
+    toggle.textContent = manualMode ? t('Search birth place') : t('Enter UTC offset');
     clearResults();
     updateChip();
   });
 
+  function refreshLanguage() {
+    const placeLabel = t(placeholder);
+    input.placeholder = placeLabel;
+    input.setAttribute('aria-label', placeLabel);
+    manual.placeholder = t('UTC offset, e.g. -6');
+    manual.setAttribute('aria-label', t('UTC offset at birth'));
+    toggle.textContent = manualMode ? t('Search birth place') : t('Enter UTC offset');
+    updateChip();
+  }
+  const unsubscribeLanguage = onLocaleChange(refreshLanguage);
+
   return {
+    refreshLanguage,
     hasInput: () => manualMode ? manual.value.trim() !== '' : !!selected,
     flagMissing: () => {
       const el = manualMode ? manual : input;
@@ -156,6 +170,10 @@ export function createPlaceSearch(mount, { placeholder = 'Birth place', getDateT
       try { timezone = offsetForZone(date, time, selected.timezone); } catch { timezone = 0; }
       return { timezone, lat: selected.latitude, lon: selected.longitude, iana: selected.timezone, name: selected.label };
     },
-    destroy() { document.removeEventListener('click', onDocClick); clearTimeout(debounce); }
+    destroy() {
+      document.removeEventListener('click', onDocClick);
+      unsubscribeLanguage?.();
+      clearTimeout(debounce);
+    }
   };
 }

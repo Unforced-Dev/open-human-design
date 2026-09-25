@@ -1,0 +1,144 @@
+[
+  {
+    "source": "Both use {0} - natural understanding of decision process",
+    "translation": "雙方都使用{0}，自然理解彼此的決策過程"
+  },
+  {
+    "source": "Different decision styles: {0} meets {1}. Honor both processes.",
+    "translation": "決策方式不同：{0}遇見{1}。尊重雙方的決策過程。"
+  },
+  {
+    "source": "Both {0} - deep mutual recognition but share similar challenges",
+    "translation": "雙方都是{0}，能深刻認出彼此，但也面臨相似的挑戰"
+  },
+  {
+    "source": "Both lead with Line {0} energy - natural understanding of each other's approach",
+    "translation": "雙方都以第 {0} 爻線的能量為先，自然理解彼此的做事方式"
+  },
+  {
+    "source": "Lines {0} and {1} are complementary - attractive polarity",
+    "translation": "第 {0} 與第 {1} 爻線互補，形成相互吸引的兩極"
+  },
+  {
+    "source": "{0} and {1} bring different gifts - opportunity for growth",
+    "translation": "{0}與{1}帶來不同的天賦，也帶來成長的機會"
+  },
+  {
+    "source": "Gate {0}",
+    "translation": "第 {0} 閘門"
+  },
+  {
+    "source": "Both have defined {0} - consistent but fixed expression",
+    "translation": "雙方的{0}都有定義，表達穩定，但也較固定"
+  },
+  {
+    "source": "Both have open {0} - amplified together from environment",
+    "translation": "雙方的{0}都開放，會共同放大來自環境的影響"
+  },
+  {
+    "source": "A's defined {0} conditions B's open center",
+    "translation": "A 有定義的{0}制約 B 開放的中心"
+  },
+  {
+    "source": "B's defined {0} conditions A's open center",
+    "translation": "B 有定義的{0}制約 A 開放的中心"
+  },
+  {
+    "source": "Both share the {0} channel — mutual understanding and ease in this energy.",
+    "translation": "雙方都擁有{0}通道，在這股能量上容易相互理解、相處自在。"
+  },
+  {
+    "source": "A's {0} channel conditions B, who has no gates in this channel.",
+    "translation": "A 的{0}通道制約 B；B 在該通道上沒有任何閘門。"
+  },
+  {
+    "source": "B's {0} channel conditions A, who has no gates in this channel.",
+    "translation": "B 的{0}通道制約 A；A 在該通道上沒有任何閘門。"
+  },
+  {
+    "source": "A defines the {0} channel fully; B has Gate {1} and gets pulled into A's frequency.",
+    "translation": "A 完整定義了{0}通道；B 擁有第 {1} 閘門，會被帶入 A 的頻率。"
+  },
+  {
+    "source": "B defines the {0} channel fully; A has Gate {1} and gets pulled into B's frequency.",
+    "translation": "B 完整定義了{0}通道；A 擁有第 {1} 閘門，會被帶入 B 的頻率。"
+  },
+  {
+    "source": "A's Gate {0} meets B's Gate {1}, creating the {2} channel together — new energy neither has alone.",
+    "translation": "A 的第 {0} 閘門與 B 的第 {1} 閘門相遇，共同形成{2}通道；這股新能量是雙方獨處時都沒有的。"
+  },
+  {
+    "source": "Profiles {0} and {1} have natural harmony.",
+    "translation": "{0}與{1}人生角色自然和諧。"
+  },
+  {
+    "source": "{0} electromagnetic connection{1} create attraction.",
+    "omittedPluralSuffixes": [
+      1
+    ],
+    "translation": "{0} 條電磁連接帶來吸引力。"
+  },
+  {
+    "source": "{0} shared channel{1} create deep understanding.",
+    "omittedPluralSuffixes": [
+      1
+    ],
+    "translation": "{0} 條共有通道帶來深刻理解。"
+  },
+  {
+    "source": "Person {0}",
+    "translation": "第 {0} 位成員"
+  },
+  {
+    "source": "Consider adding someone with a defined {0} to fill this role.",
+    "translation": "可考慮加入一位{0}有定義的成員，以填補這一角色。"
+  },
+  {
+    "source": "This group functions as a {0}. {1}",
+    "translation": "這個團隊以{0}的方式運作。{1}"
+  },
+  {
+    "source": "Missing key roles: {0}. These gaps may cause the group to struggle with {1}.",
+    "translation": "缺少關鍵角色：{0}。這些缺口可能使團隊在{1}方面遇到困難。"
+  },
+  {
+    "source": "The group energy is heavily {0} ({1}/{2} channels). {3}",
+    "translation": "團隊能量主要屬於{0}迴路（{2} 條通道中有 {1} 條）。{3}"
+  },
+  {
+    "source": "With {0} members, this group extends beyond a single Penta. Consider organizing into sub-teams of 3-5 for optimal small-group dynamics.",
+    "translation": "這個團隊有 {0} 位成員，已超出單一五人組的規模。可考慮分成每組 3 至 5 人的小團隊，以獲得更合適的小組互動。"
+  },
+  {
+    "source": "Line {0}",
+    "translation": "第 {0} 爻線"
+  },
+  {
+    "source": "{0} with {1}, {2} Profile",
+    "translation": "{0}，{1}，{2} 人生角色"
+  },
+  {
+    "source": "Life's Work: {0} ({1}), ",
+    "translation": "生命之業：{0}（{1}），"
+  },
+  {
+    "source": "Evolution: {0} ({1}), ",
+    "translation": "進化：{0}（{1}），"
+  },
+  {
+    "source": "Radiance: {0} ({1}), ",
+    "translation": "光輝：{0}（{1}），"
+  },
+  {
+    "source": "Purpose: {0} ({1})",
+    "translation": "目的：{0}（{1}）"
+  },
+  {
+    "source": "Transit {0} reinforces your natal Gate {1} ({2}) — this energy is amplified today.",
+    "translation": "流日中的{0}加強了你本命的第 {1} 閘門（{2}）；這股能量今天得到放大。"
+  },
+  {
+    "source": "Transit {0} reinforces your natal Gate {1} ({2}) — this energy is amplified at the selected time.",
+    "translation": "流日中的{0}加強了你本命的第 {1} 閘門（{2}）；這股能量在所選時刻得到放大。"
+  }
+]

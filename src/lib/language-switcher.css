@@ -1,0 +1,43 @@
+/* Match the existing header controls without changing graph or modal layout. */
+.language-switcher {
+  max-width: 112px;
+  min-height: 32px;
+  padding: 5px 7px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.local-auth .language-switcher { display: block; margin-left: auto; margin-bottom: 12px; }
+/* Reuse the theme button's circle, color and hover treatment. The native
+   select remains the hit target, preserving its keyboard and touch behavior. */
+.language-control { position: relative; flex-shrink: 0; }
+.language-control svg { pointer-events: none; }
+.language-control > .language-switcher {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
+  border-radius: inherit;
+}
+.language-control:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+@media (max-width: 640px) {
+  .language-switcher { max-width: 82px; font-size: 11px; padding-inline: 3px; }
+  /* Leave navigation usable when the extra selector shares a narrow header. */
+  :root { --header-height: 88px; }
+  .header-inner { flex-wrap: wrap; padding-block: 6px; }
+  .header-actions { margin-left: auto; gap: 4px; }
+  .header-actions .people-switcher { max-width: 72px; }
+  .header .nav { order: 1; flex: 0 0 100%; justify-content: center; }
+}

@@ -3,17 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Open Human Design — Free Interactive Chart</title>
-  <meta name="description" content="Free, open-source Human Design chart calculator. Interactive bodygraph with type, strategy, authority, profile, variable/PHS, transits, connection and team analysis — no account, no paywall, your data stays on your device.">
+  <title data-i18n="Open Human Design — Free Interactive Chart">Open Human Design — Free Interactive Chart</title>
+  <meta name="description" content="Free, open-source Human Design chart calculator. Interactive bodygraph with type, strategy, authority, profile, variable/PHS, transits, connection and team analysis — no account, no paywall, your data stays on your device." data-i18n-content="Free, open-source Human Design chart calculator. Interactive bodygraph with type, strategy, authority, profile, variable/PHS, transits, connection and team analysis — no account, no paywall, your data stays on your device.">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Open Human Design">
-  <meta property="og:title" content="Open Human Design — free interactive chart">
-  <meta property="og:description" content="Your complete Human Design chart — all the depth, none of the paywall. Free, open-source, private.">
+  <meta property="og:title" content="Open Human Design — free interactive chart" data-i18n-content="Open Human Design — free interactive chart">
+  <meta property="og:description" content="Your complete Human Design chart — all the depth, none of the paywall. Free, open-source, private." data-i18n-content="Your complete Human Design chart — all the depth, none of the paywall. Free, open-source, private.">
   <meta property="og:image" content="https://openhumandesign.com/og.png">
   <meta property="og:url" content="https://openhumandesign.com/">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Open Human Design — free interactive chart">
-  <meta name="twitter:description" content="Your complete Human Design chart — all the depth, none of the paywall.">
+  <meta name="twitter:title" content="Open Human Design — free interactive chart" data-i18n-content="Open Human Design — free interactive chart">
+  <meta name="twitter:description" content="Your complete Human Design chart — all the depth, none of the paywall." data-i18n-content="Your complete Human Design chart — all the depth, none of the paywall.">
   <meta name="twitter:image" content="https://openhumandesign.com/og.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -30,24 +30,36 @@
           <span class="logo-text">Open HD</span>
         </a>
         <nav class="nav">
-          <button class="nav-link active" data-view="chart">My Chart</button>
-          <button class="nav-link" data-view="transits">Transits</button>
-          <button class="nav-link" data-view="connection">Connection</button>
-          <button class="nav-link" data-view="team">Team</button>
+          <button class="nav-link active" data-view="chart" data-i18n="My Chart">My Chart</button>
+          <button class="nav-link" data-view="transits" data-i18n="Transits">Transits</button>
+          <button class="nav-link" data-view="timeline" data-i18n="Timeline">Timeline</button>
+          <button class="nav-link" data-view="connection" data-i18n="Connection">Connection</button>
+          <button class="nav-link" data-view="team" data-i18n="Team">Team</button>
         </nav>
         <div class="header-actions">
-          <select id="people-switcher" class="people-switcher hidden" title="Saved charts"></select>
+          <select id="people-switcher" class="people-switcher hidden" title="Saved charts" data-i18n-title="Saved charts"></select>
           <button id="sync-button" class="btn-secondary btn-small hidden"></button>
-          <button id="theme-toggle" class="theme-toggle" title="Toggle dark mode" aria-label="Toggle dark mode">
+          <div class="theme-toggle language-control">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false">
+              <circle cx="12" cy="12" r="9"></circle>
+              <path d="M3 12h18M12 3c3 3 4 6 4 9s-1 6-4 9c-3-3-4-6-4-9s1-6 4-9Z"></path>
+            </svg>
+            <select id="language-switcher" class="language-switcher" aria-label="Language" title="Language" data-i18n-aria-label="Language" data-i18n-title="Language">
+              <option value="en" lang="en">English</option>
+              <option value="zh-CN" lang="zh-CN">简体中文</option>
+              <option value="zh-Hant" lang="zh-Hant">繁體中文</option>
+            </select>
+          </div>
+          <button id="theme-toggle" class="theme-toggle" title="Toggle dark mode" aria-label="Toggle dark mode" data-i18n-title="Toggle dark mode" data-i18n-aria-label="Toggle dark mode">
             <span class="theme-icon" aria-hidden="true">◐</span>
           </button>
         </div>
         <div id="sync-popover" class="sync-popover hidden">
-          <div class="panel-title">Sync &amp; connect your AI</div>
-          <p class="panel-intro">Your charts stay on this device by default. Sign in (free) to sync them across devices — and to let your AI assistant pull up charts by name. We store only birth data, never sell it, never train on it.</p>
+          <div class="panel-title" data-i18n="Sync &amp; connect your AI">Sync &amp; connect your AI</div>
+          <p class="panel-intro" data-i18n="Your charts stay on this device by default. Sign in (free) to sync them across devices — and to let your AI assistant pull up charts by name. We store only birth data, never sell it, never train on it.">Your charts stay on this device by default. Sign in (free) to sync them across devices — and to let your AI assistant pull up charts by name. We store only birth data, never sell it, never train on it.</p>
           <form id="sync-form">
             <input type="email" id="sync-email" placeholder="you@example.com" required>
-            <button type="submit" class="btn-primary">Email me a sign-in link</button>
+            <button type="submit" class="btn-primary" data-i18n="Email me a sign-in link">Email me a sign-in link</button>
           </form>
           <p id="sync-status" class="sync-status"></p>
         </div>
@@ -58,42 +70,42 @@
     <section id="birth-entry" class="birth-entry">
       <div class="entry-container">
         <div id="entry-invite" class="entry-invite hidden"></div>
-        <h1 class="entry-title">Discover Your Design</h1>
-        <p class="entry-subtitle">Free, accurate, private — your birth data never leaves this device</p>
-        <p class="entry-explain">Human Design maps your energy type, decision-making style and strengths
+        <h1 class="entry-title" data-i18n="Discover Your Design">Discover Your Design</h1>
+        <p class="entry-subtitle" data-i18n="Free, accurate, private — your birth data never leaves this device">Free, accurate, private — your birth data never leaves this device</p>
+        <p class="entry-explain" data-i18n="Human Design maps your energy type, decision-making style and strengths from the moment you were born. Enter your details to see your free chart — no account needed.">Human Design maps your energy type, decision-making style and strengths
         from the moment you were born. Enter your details to see your free chart — no account needed.</p>
         <form id="birth-form" class="birth-form">
           <div class="form-row form-row-2">
             <div class="form-group">
-              <label for="birth-name">Name <span class="label-soft">(optional, to save)</span></label>
-              <input type="text" id="birth-name" placeholder="Your name" autocomplete="off">
-              <label class="checkbox-label hidden" id="ai-access-wrap"><input type="checkbox" id="ai-access"> Let my connected AI see this person</label>
+              <label for="birth-name"><span data-i18n="Name">Name</span> <span class="label-soft" data-i18n="(optional, to save)">(optional, to save)</span></label>
+              <input type="text" id="birth-name" placeholder="Your name" autocomplete="off" data-i18n-placeholder="Your name">
+              <label class="checkbox-label hidden" id="ai-access-wrap"><input type="checkbox" id="ai-access"> <span data-i18n="Let my connected AI see this person">Let my connected AI see this person</span></label>
             </div>
             <div class="form-group">
-              <label for="birth-date">Birth Date</label>
+              <label for="birth-date" data-i18n="Birth Date">Birth Date</label>
               <input type="date" id="birth-date" required>
             </div>
           </div>
           <div class="form-row form-row-2">
             <div class="form-group">
-              <label for="birth-time">Birth Time <span class="label-soft">(minutes matter)</span></label>
+              <label for="birth-time"><span data-i18n="Birth Time">Birth Time</span> <span class="label-soft" data-i18n="(minutes matter)">(minutes matter)</span></label>
               <input type="time" id="birth-time" required>
-              <label class="checkbox-label"><input type="checkbox" id="time-unknown"> I don't know my birth time</label>
+              <label class="checkbox-label"><input type="checkbox" id="time-unknown"> <span data-i18n="I don't know my birth time">I don't know my birth time</span></label>
             </div>
             <div class="form-group" id="place-group">
-              <label for="birth-place">Birth Place</label>
-              <input type="text" id="birth-place" placeholder="City…" autocomplete="off">
+              <label for="birth-place" data-i18n="Birth Place">Birth Place</label>
+              <input type="text" id="birth-place" placeholder="City…" autocomplete="off" data-i18n-placeholder="City…">
               <div id="place-results" class="place-results hidden"></div>
-              <p id="place-error" class="field-error hidden">Pick a place from the list — or enter a UTC offset manually below.</p>
+              <p id="place-error" class="field-error hidden" data-i18n="Pick a place from the list — or enter a UTC offset manually below.">Pick a place from the list — or enter a UTC offset manually below.</p>
             </div>
           </div>
           <div id="tz-chip" class="tz-chip hidden"></div>
           <div id="manual-tz-wrap" class="form-group hidden">
-            <label for="manual-tz">UTC offset at birth (e.g. -7, 5.5)</label>
-            <input type="number" id="manual-tz" placeholder="e.g. -7 or 5.5" min="-12" max="14" step="0.25">
+            <label for="manual-tz" data-i18n="UTC offset at birth (e.g. -7, 5.5)">UTC offset at birth (e.g. -7, 5.5)</label>
+            <input type="number" id="manual-tz" placeholder="e.g. -7 or 5.5" min="-12" max="14" step="0.25" data-i18n-placeholder="e.g. -7 or 5.5">
           </div>
-          <button type="submit" class="btn-primary">View My Chart</button>
-          <button type="button" id="manual-tz-toggle" class="link-button" style="margin:10px auto 0;display:block">Enter UTC offset manually instead</button>
+          <button type="submit" class="btn-primary" data-i18n="View My Chart">View My Chart</button>
+          <button type="button" id="manual-tz-toggle" class="link-button" style="margin:10px auto 0;display:block" data-i18n="Enter UTC offset manually instead">Enter UTC offset manually instead</button>
         </form>
         <div id="saved-people" class="saved-people"></div>
       </div>
@@ -110,16 +122,15 @@
         </div>
 
         <div class="info-column">
-          <div id="gate-detail" class="gate-detail hidden"></div>
           <div id="foundation-panel" class="panel"></div>
 
           <div class="panel-tabs">
-            <button class="panel-tab active" data-panel="centers">Centers</button>
-            <button class="panel-tab" data-panel="channels">Channels</button>
-            <button class="panel-tab" data-panel="gates">Gates</button>
-            <button class="panel-tab" data-panel="planets">Planets</button>
-            <button class="panel-tab" data-panel="variable">Variable</button>
-            <button class="panel-tab" data-panel="cross">Cross</button>
+            <button class="panel-tab active" data-panel="centers" data-i18n="Centers">Centers</button>
+            <button class="panel-tab" data-panel="channels" data-i18n="Channels">Channels</button>
+            <button class="panel-tab" data-panel="gates" data-i18n="Gates">Gates</button>
+            <button class="panel-tab" data-panel="planets" data-i18n="Planets">Planets</button>
+            <button class="panel-tab" data-panel="variable" data-i18n="Variable">Variable</button>
+            <button class="panel-tab" data-panel="cross" data-i18n="Cross">Cross</button>
           </div>
           <div id="panel-content" class="panel-content"></div>
         </div>
@@ -129,52 +140,73 @@
     <!-- Transits View -->
     <section id="transits-view" class="view-section hidden">
       <div class="view-container-wide">
-        <h2 class="view-title">Transits</h2>
-        <p class="view-subtitle">How the current planetary weather interacts with your chart</p>
+        <h2 class="view-title" data-i18n="Transits">Transits</h2>
+        <p class="view-subtitle" data-i18n="How the current planetary weather interacts with your chart">How the current planetary weather interacts with your chart</p>
         <div class="transit-date-picker">
-          <label for="transit-date">Date</label>
-          <input type="date" id="transit-date">
-          <button id="transit-today" class="btn-secondary">Today</button>
+          <label><span data-i18n="Date">Date</span><input type="date" id="transit-date"></label>
+          <div class="transit-time-field">
+            <label for="transit-time" data-i18n="Time">Time</label>
+            <div class="transit-time-group">
+              <input type="time" id="transit-time" step="60">
+              <label class="transit-precision"><input type="checkbox" id="transit-seconds" aria-label="Include seconds" data-i18n-aria-label="Include seconds"> <span data-i18n="Seconds">Seconds</span></label>
+            </div>
+          </div>
+          <label><span data-i18n="Timezone">Timezone</span><select id="transit-timezone" aria-describedby="transit-status"></select></label>
+          <button id="transit-now" class="btn-secondary" data-i18n="Now">Now</button>
+        </div>
+        <label id="transit-choice-label" hidden><span data-i18n="Choose UTC offset">Choose UTC offset</span> <select id="transit-choice"></select></label>
+        <p id="transit-status" class="panel-intro" aria-live="polite"></p>
+        <div class="transit-view-toolbar">
+          <fieldset class="transit-mode-switch" aria-label="Chart view" data-i18n-aria-label="Chart view">
+            <label><input type="radio" name="transit-mode" value="overlay" checked><span data-i18n="Birth chart + transits">Birth chart + transits</span></label>
+            <label><input type="radio" name="transit-mode" value="transit-only"><span data-i18n="Transit only">Transit only</span></label>
+          </fieldset>
+          <div id="transit-graph-legend" class="transit-graph-legend" aria-label="Activation sources" data-i18n-aria-label="Activation sources"></div>
         </div>
         <div class="transit-layout">
-          <div id="transit-bodygraph" class="bodygraph-container transit-graph"></div>
+          <div class="chart-column">
+            <div id="transit-bodygraph" class="bodygraph-container transit-graph"></div>
+          </div>
           <div id="transit-content" class="transit-content"></div>
         </div>
-        <p class="panel-intro" style="margin-top:8px">Dashed rings mark gates activated by the transiting planets on the chosen date.</p>
+
       </div>
     </section>
+
+    <!-- Independent transit timeline -->
+    <section id="timeline-view" class="view-section hidden"></section>
 
     <!-- Connection View -->
     <section id="connection-view" class="view-section hidden">
       <div class="view-container">
-        <h2 class="view-title">Connection</h2>
-        <p class="view-subtitle">How two designs meet — what you create together, where you teach each other</p>
+        <h2 class="view-title" data-i18n="connection.heading">Connection</h2>
+        <p class="view-subtitle" data-i18n="How two designs meet — what you create together, where you teach each other">How two designs meet — what you create together, where you teach each other</p>
         <div id="connection-form" class="connection-form">
           <div class="form-group">
-            <label for="conn-person">Person B</label>
+            <label for="conn-person" data-i18n="Person B">Person B</label>
             <select id="conn-person"></select>
           </div>
           <div id="conn-manual" class="person-form">
             <div class="form-row">
               <div class="form-group">
-                <label for="conn-name">Name</label>
-                <input type="text" id="conn-name" placeholder="Person B">
+                <label for="conn-name" data-i18n="Name">Name</label>
+                <input type="text" id="conn-name" placeholder="Person B" data-i18n-placeholder="connection.namePlaceholder">
               </div>
               <div class="form-group">
-                <label for="conn-date">Birth Date</label>
+                <label for="conn-date" data-i18n="Birth Date">Birth Date</label>
                 <input type="date" id="conn-date">
               </div>
               <div class="form-group">
-                <label for="conn-time">Birth Time</label>
+                <label for="conn-time" data-i18n="Birth Time">Birth Time</label>
                 <input type="time" id="conn-time" value="12:00">
               </div>
               <div class="form-group">
-                <label>Birth Place</label>
+                <label data-i18n="Birth Place">Birth Place</label>
                 <div id="conn-place"></div>
               </div>
             </div>
           </div>
-          <button id="conn-calculate" class="btn-primary">Compare Charts</button>
+          <button id="conn-calculate" class="btn-primary" data-i18n="Compare Charts">Compare Charts</button>
         </div>
         <div id="connection-content" class="connection-content"></div>
       </div>
@@ -183,25 +215,27 @@
     <!-- Team View -->
     <section id="team-view" class="view-section hidden">
       <div class="view-container">
-        <h2 class="view-title">Team</h2>
-        <p class="view-subtitle">Group dynamics and Penta roles</p>
+        <h2 class="view-title" data-i18n="Team">Team</h2>
+        <p class="view-subtitle" data-i18n="Group dynamics and Penta roles">Group dynamics and Penta roles</p>
         <div id="team-form" class="team-form">
           <div id="team-saved" class="team-saved"></div>
           <div id="team-members" class="team-members"></div>
-          <button id="add-member" class="btn-secondary">+ Add by birth data</button>
-          <button id="team-calculate" class="btn-primary">Analyze Team</button>
+          <button id="add-member" class="btn-secondary" data-i18n="+ Add by birth data">+ Add by birth data</button>
+          <button id="team-calculate" class="btn-primary" data-i18n="Analyze Team">Analyze Team</button>
         </div>
         <div id="team-content" class="team-content"></div>
       </div>
     </section>
 
     <footer class="footer">
-      <span><a href="/human-design">Explore Human Design</a> · all types, centers, gates &amp; channels</span>
-      <span>Open source · <a href="https://github.com/Unforced-Dev/open-human-design" target="_blank" rel="noopener">GitHub</a></span>
-      <span>Powered by <a href="https://github.com/Unforced-Dev/natal-engine" target="_blank" rel="noopener">NatalEngine</a></span>
-      <span>No account · no tracking · charts stay on your device</span>
+      <span><a href="/human-design" data-i18n="Explore Human Design">Explore Human Design</a> <span data-i18n="· all types, centers, gates &amp; channels">· all types, centers, gates &amp; channels</span></span>
+      <span><span data-i18n="Open source ·">Open source ·</span> <a href="https://github.com/Unforced-Dev/open-human-design" target="_blank" rel="noopener">GitHub</a></span>
+      <span><span data-i18n="Powered by">Powered by</span> <a href="https://github.com/Unforced-Dev/natal-engine" target="_blank" rel="noopener">NatalEngine</a><span data-i18n="footer.poweredSuffix"></span></span>
+      <span data-i18n="No account · no tracking · charts stay on your device">No account · no tracking · charts stay on your device</span>
     </footer>
   </div>
+
+  <div id="gate-detail" class="gate-detail hidden"></div>
 
   <script type="module" src="/src/main.js"></script>
 </body>

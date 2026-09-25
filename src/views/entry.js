@@ -9,6 +9,8 @@
 import { searchPlaces, offsetForZone, formatOffset } from '../lib/location.js';
 import { listPeople, birthFromPerson } from '../lib/people.js';
 import { esc } from '../lib/format.js';
+import { t } from '../lib/i18n.js';
+
 
 export function setupEntryView({ onSubmit }) {
   const form = document.getElementById('birth-form');
@@ -34,7 +36,7 @@ export function setupEntryView({ onSubmit }) {
     const people = listPeople();
     if (!people.length) { wrap.innerHTML = ''; return; }
     wrap.innerHTML = `
-      <div class="saved-people-label">Saved charts</div>
+      <div class="saved-people-label">${t('Saved charts')}</div>
       <div class="saved-people-chips">
         ${people.map(p => `<button type="button" class="person-chip" data-id="${esc(p.id)}">${esc(p.name)}</button>`).join('')}
       </div>
@@ -80,7 +82,7 @@ export function setupEntryView({ onSubmit }) {
     const time = timeUnknown.checked ? '12:00' : (timeInput.value || '12:00');
     try {
       const offset = offsetForZone(date, time, selectedPlace.timezone);
-      tzChip.textContent = `${selectedPlace.label} · ${formatOffset(offset)} at birth · ${selectedPlace.timezone}`;
+      tzChip.textContent = `${selectedPlace.label} · ${t('{offset} at birth', { offset: formatOffset(offset) })} · ${selectedPlace.timezone}`;
       tzChip.classList.remove('hidden');
     } catch {
       tzChip.classList.add('hidden');
@@ -153,7 +155,7 @@ export function setupEntryView({ onSubmit }) {
     manualMode = !manualMode;
     manualWrap.classList.toggle('hidden', !manualMode);
     document.getElementById('place-group').classList.toggle('hidden', manualMode);
-    manualToggle.textContent = manualMode ? 'Search birth place instead' : 'Enter UTC offset manually';
+    manualToggle.textContent = manualMode ? t('Search birth place instead') : t('Enter UTC offset manually');
     updateTzChip();
   });
 
@@ -209,6 +211,12 @@ export function setupEntryView({ onSubmit }) {
     });
   });
 
-  renderQuickPick();
-  return { renderQuickPick };
+  function refreshLanguage() {
+    renderQuickPick();
+    manualToggle.textContent = manualMode ? t('Search birth place instead') : t('Enter UTC offset manually');
+    updateTzChip();
+  }
+
+  refreshLanguage();
+  return { renderQuickPick, refreshLanguage };
 }
