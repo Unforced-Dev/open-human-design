@@ -12,7 +12,8 @@
 import { chromium } from 'playwright-core';
 
 const BASE = process.env.E2E_URL || 'http://localhost:5174';
-const CHROME = process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+const CHROME = process.env.CHROME_PATH || (process.platform === 'darwin'
+  ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' : '/usr/bin/chromium');
 
 let failures = 0;
 const ok = (name) => console.log(`✔ ${name}`);
@@ -66,26 +67,26 @@ await check('planet columns show 26 activations', async () => {
   if (rows !== 26) throw new Error(`got ${rows} rows`);
 });
 
-await check('clicking a gate opens detail card', async () => {
+await check('clicking a gate opens the detail panel', async () => {
   await page.click('.bg-gate[data-gate="34"]');
-  await page.waitForSelector('#gate-detail:not(.hidden)', { timeout: 3000 });
-  const detail = await page.textContent('#gate-detail');
+  await page.waitForSelector('#detail-panel.open', { timeout: 3000 });
+  const detail = await page.textContent('#detail-panel');
   if (!/Gate 34/.test(detail)) throw new Error(detail.slice(0, 120));
 });
 
 await check('lens switcher shows the three traditions', async () => {
   await page.click('.lens-switch button[data-lens="iching"]');
-  let c = await page.textContent('#lens-content');
+  let c = await page.textContent('#detail-panel .dp-lens');
   if (!/Hexagram 34|Power of the Great/.test(c)) throw new Error('I Ching lens: ' + c.slice(0, 100));
   await page.click('.lens-switch button[data-lens="gk"]');
-  c = await page.textContent('#lens-content');
+  c = await page.textContent('#detail-panel .dp-lens');
   if (!/Majesty|Strength/.test(c)) throw new Error('Gene Keys lens: ' + c.slice(0, 100));
   await page.click('.lens-switch button[data-lens="hd"]'); // restore default
 });
 
 await check('relational highlight links chart ↔ data both ways + pins on click', async () => {
   // Start clean: close any card a prior check left open and clear hover state.
-  await page.evaluate(() => document.querySelector('#gate-detail .gate-detail-close')?.click());
+  await page.evaluate(() => document.querySelector('#detail-panel.open .dp-close')?.click());
   await page.click('.panel-tab[data-panel="gates"]');
   await page.waitForSelector('.gate-item[data-gate="34"]', { timeout: 3000 });
   // Dispatch the real handler events directly — deterministic, avoids
@@ -115,11 +116,11 @@ await check('relational highlight links chart ↔ data both ways + pins on click
   const pinned = await page.$eval('.bg-gate-path[data-gate="34"]', el => el.classList.contains('bg-lit'));
   if (!pinned) throw new Error('clicked gate did not stay pinned-lit after pointer left');
   // Close the card to restore a clean highlight state for later checks.
-  await page.click('#gate-detail .gate-detail-close');
+  await page.click('#detail-panel .dp-close');
 });
 
 await check('centers are interactive: hover lights, click opens center detail, panel ↔ graph', async () => {
-  await page.evaluate(() => document.querySelector('#gate-detail .gate-detail-close')?.click());
+  await page.evaluate(() => document.querySelector('#detail-panel.open .dp-close')?.click());
   const fire = (sel, type) => page.$eval(sel, (el, t) =>
     el.dispatchEvent(new PointerEvent(t, { bubbles: true, pointerType: 'mouse' })), type);
   // Hover a center on the graph → it lights and the graph dims.
@@ -130,11 +131,10 @@ await check('centers are interactive: hover lights, click opens center detail, p
   await fire('.bg-center[data-center="throat"]', 'pointerout');
   // Click a center → its detail card opens with status + gate chips.
   await page.click('.bg-center[data-center="throat"]');
-  await page.waitForSelector('#gate-detail .center-detail-card[data-center="throat"]', { timeout: 3000 });
-  const txt = await page.textContent('#gate-detail .center-detail-card');
-  if (!/Throat/.test(txt)) throw new Error('center detail title missing: ' + txt.slice(0, 80));
-  if (!(await page.$('#gate-detail .gate-chip'))) throw new Error('center detail gate chips missing');
-  await page.keyboard.press('Escape');
+  await page.waitForSelector('#detail-panel.open', { timeout: 3000 });
+  const txt = await page.textContent('#detail-panel');
+  if (!/Throat Center/.test(txt)) throw new Error('center detail title missing: ' + txt.slice(0, 80));
+  if (!(await page.$('#detail-panel .gate-chip'))) throw new Error('center detail gate chips missing');
   // Reverse: hovering the Centers-panel card lights that center on the graph.
   await page.click('.panel-tab[data-panel="centers"]');
   await page.waitForSelector('.center-card[data-center="g"]', { timeout: 3000 });
@@ -143,7 +143,7 @@ await check('centers are interactive: hover lights, click opens center detail, p
   if (!await page.$eval('.bg-center[data-center="g"]', el => el.classList.contains('bg-lit')))
     throw new Error('G center not lit from panel-card hover');
   await fire('.center-card[data-center="g"]', 'pointerleave');
-  await page.evaluate(() => document.querySelector('#gate-detail .gate-detail-close')?.click());
+  await page.evaluate(() => document.querySelector('#detail-panel.open .dp-close')?.click());
 });
 
 await check('panel tabs switch content', async () => {
@@ -242,11 +242,11 @@ await check('connection compare works (place search resolves tz)', async () => {
   });
   if (!cg) throw new Error('no active gate found on composite chart');
   await page.click(`#conn-composite .bg-gate[data-gate="${cg}"]`);
-  await page.waitForSelector('#conn-detail:not(.hidden) .gate-detail-card', { timeout: 3000 });
-  if (!/Carried by/.test(await page.textContent('#conn-detail')))
+  await page.waitForSelector('#detail-panel.open', { timeout: 3000 });
+  if (!/Carried by/.test(await page.textContent('#detail-panel')))
     throw new Error('composite gate detail did not render');
   await page.keyboard.press('Escape');
-  await page.waitForSelector('#conn-detail', { state: 'hidden' });
+  await page.waitForSelector('#detail-panel', { state: 'hidden' });
 });
 
 // --- Team using manual rows with place search ---
