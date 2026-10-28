@@ -2463,7 +2463,9 @@ body.dp-lock { overflow: hidden; }
   #chart-view .chart-layout > .panel { margin-bottom: 0; }
   #foundation-panel { padding: 14px; }
   #foundation-panel .foundation-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
-  #foundation-panel .foundation-item { padding: 10px 12px; }
+  #foundation-panel .foundation-item { padding: 10px 24px 10px 12px; }
+  #foundation-panel .foundation-item { overflow-wrap: break-word; }
+  #foundation-panel .foundation-item[data-detail]::after { right: 8px; }
   #foundation-panel .foundation-item .value { font-size: 14px; line-height: 1.35; }
   #foundation-panel .foundation-item .detail { display: none; }
   #foundation-panel .reliability { margin-bottom: 10px; }

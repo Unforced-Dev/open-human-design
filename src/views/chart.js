@@ -306,7 +306,7 @@ function renderFoundation(chart, sensitivity = null, birth = null) {
       ${tile('Type', esc(chart.type.name), esc(chart.type.description), dt('type', chart.type.name))}
       ${tile('Strategy', esc(chart.type.strategy), `Signature: ${esc(chart.type.signature)} · Not-Self: ${esc(chart.type.notSelf)}`, dt('type', chart.type.name))}
       ${tile('Authority', esc(chart.authority.name), esc(chart.authority.description), dt('authority', chart.authority.name))}
-      ${tile('Profile', `${esc(chart.profile.numbers)} ${esc(chart.profile.name)}`, esc(chart.profile.theme), dt('profile', chart.profile.numbers))}
+      ${tile('Profile', `${esc(chart.profile.numbers)} ${esc(chart.profile.name).replace('/', '/<wbr>')}`, esc(chart.profile.theme), dt('profile', chart.profile.numbers))}
       ${tile('Definition', esc(chart.definition), `${plural(chart.centers.definedNames.length, 'defined center')}, ${plural(chart.channels.length, 'channel')}`, dt('definition', chart.definition))}
       ${tile('Incarnation Cross', esc(crossName), `Gates ${chart.incarnationCross?.gates?.join(' / ') || '—'}`, chart.incarnationCross ? dt('cross', 'self') : '')}
       ${tile('Dominant Circuit', esc(circuitText), circuitDominant ? esc(circuitDominant.theme || '') : 'No defined channels', circuitDominant ? dt('circuit', circuitDominant.name.toLowerCase()) : '')}
