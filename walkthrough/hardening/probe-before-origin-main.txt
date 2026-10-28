@@ -1,0 +1,72 @@
+
+## 0. security headers on every route
+OPEN     {"missing":{"/":["content-security-policy","strict-transport-security","x-frame-options","x-content-type-options","referrer-policy"],"/gate/1":["content-security-policy","strict-transport-security","x-frame-options","x-content-type-options","referrer-policy"],"/authorize":["content-security-policy","strict-transport-security","x-frame-options","x-content-type-options","referrer-policy"],"/auth/verify":["content-security-policy","strict-transport-security","x-frame-options","x-content-type-options","referrer-policy"],"/api/auth/get-session":["content-security-policy","strict-transport-security","x-frame-options","x-content-type-options","referrer-policy"],"/mcp":["content-security-policy","strict-transport-security","x-frame-options","x-content-type-options","referrer-policy"],"/.well-known/oauth-authorization-server":["content-security-policy","strict-transport-security","x-frame-options","x-content-type-options","referrer-policy"],"/robots.txt":["content-security-policy","strict-transport-security","x-frame-options","x-content-type-options","referrer-policy"]}}
+
+## 1. session cookie (local origin is http, so no Secure here; prod http now 301s first)
+info     ["better-auth.session_token=<redacted>; Max-Age=7776000; Path=/; HttpOnly; SameSite=Lax"]
+
+## 2a. audit payload: 400k-char tombstone
+OPEN     {"nameLen":400000,"lat":"<svg onload=alert(1)>"}
+
+## 2b. junk tombstone for an id the server never had
+OPEN     {"nameLen":5000,"birthDate":"not-a-date","lat":"<svg onload=alert(1)>"}
+
+## 2c. 200 new tombstone ids in one request (fills D1 past the cap)
+OPEN     200 stored
+
+## 2d. a real delete keeps no birth data on the server
+OPEN     {"id":"p-gone","name":"Unnamed","birthDate":"1900-01-01","birthTime":"12:00","timeUnknown":false,"location":null,"aiAccess":false,"createdAt":"2026-10-28T17:53:22.495Z","updatedAt":"2026-10-28T17:53:23.981Z","deletedAt":"2026-10-28T17:53:23.981Z"}
+
+## 3. live record with unvalidated location.*
+OPEN     {"locNameLen":100000,"ianaLen":1000,"lat":"NaN-string"}
+
+## 4. /api/sync accepts text/plain + foreign Origin (CSRF)
+OPEN     status 200
+
+## 5. anonymous dynamic client registration (open by design for MCP clients)
+info     {"status":201,"client_name":"Claude","redirect_uris":["https://evil.example/cb"]}
+
+## 6a. consent page for a request with no PKCE
+OPEN     {"status":200,"h1":"Connect “Claude”?"}
+
+## 6b. consent page for PKCE "plain"
+OPEN     status 200
+
+## 6c. consent page (S256) shows the redirect host
+OPEN     {"h1":"Connect “Claude”?","hostShown":false,"warning":false}
+
+## 7. POST /authorize with no Origin issues a code
+OPEN     {"foreign":403,"noOrigin":302}
+
+## 8. no-PKCE request: Connect → code → token without a verifier
+OPEN     {"consentPost":302,"codeIssued":true,"token":200,"scope":"charts:read","expires_in":3600,"refresh":true}
+
+## 9a. list_people with a charts:read token (allowed by that scope)
+info     {"status":200,"isError":false,"text":"{\n \"people\": [\n  {\n   \"id\": \"p-mom\",\n   \"name\": \"Mom\",\n   \"birthDate\": \"1960-03-01\",\n   \"birthTime\": \"08:00\",\n   \"place\": null\n  }\n ],\n \"note\": \"2 more saved people have AI access turned off — they can be enabled in the app.\"\n}"}
+
+## 9b. LIKE wildcard reveals a hidden person
+OPEN     Error: "Sec%" is saved, but AI access is off for them. Enable it in the app (or re-save via save_person) to let your AI read their chart.
+
+## 9b2. a hidden person's exact name answers differently from a missing one
+OPEN     Error: "Secret Ex" is saved, but AI access is off for them. Enable it in the app (or re-save via save_person) to let your AI read their chart.
+
+## 9c. delete_person with a read-only (charts:read) token
+OPEN     {
+ "deleted": "Mom",
+ "id": "p-mom"
+}
+
+## 10. sign-in emails to one address, rotating X-Forwarded-For
+OPEN     200 200 200 200 200 200 200 200
+
+## 11a. share page og:url repeats place + coordinates
+OPEN     http://127.0.0.1:8797/?d=1985-01-13&t=14:30&tz=-5&n=Sam&place=New+York&lat=40.712776&lon=-74.005974&iana=America/New_York
+
+## 11b. share page can be indexed
+OPEN     {"meta":false,"xRobotsTag":null}
+
+## 12. pages load Google Fonts (visitor IP to Google)
+OPEN     ["/","/gate/1"]
+
+19 step(s) OPEN
+exit 19
