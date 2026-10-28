@@ -1,63 +1,63 @@
-# Walkthrough — tablet pass (branch `ux-tablet-pass`)
+# Walkthrough — Start here (branch `start-here-on-main`, on top of main with the tablet pass)
 
-Narrated video (118 s, Kokoro voice, signed as Uni): `~/.local/share/uni/videos/ohd-tablet-pass.mp4`
-(tailnet: https://uni.taildf9ce2.ts.net:8444/ohd-tablet-pass.mp4).
+No video for this one. The tablet pass's own walkthrough is now `walkthrough/WALKTHROUGH-tablet-pass.md`.
 
 ## How to run it
 
-- **On the Daylight (tailnet):** open https://uni.taildf9ce2.ts.net:8533/ — the static build of this branch.
-  It has no Worker behind it, so "Save image" and Sync don't work there (they need openhumandesign.com).
-- **Locally:** `npm install && npm run dev`, then open the printed URL.
-- **Test data:** on the entry form tap "Enter UTC offset manually instead" and enter
-  Ada · 1990-06-15 · 14:30 · −6, then (people menu → "+ New chart…") Ben · 1985-03-20 · 08:00 · 0 and
-  Cy · 1992-11-02 · 12:00 · 9. Switch back to Ada. Connection: pick Ben. Team: tick all three.
+- **On a phone or the Daylight (tailnet):** https://uni.taildf9ce2.ts.net:8534/ — a static build of this branch.
+  Use a private window (or clear site data) to see it as a newcomer. No Worker behind it, so "Save image" and
+  Sync don't work there.
+- **Locally:** `npm run dev`, open the printed URL.
+- **Test data:** tap "Enter UTC offset manually instead", leave Name blank, enter 1990-01-01 · 21:15 · offset 0.
+  (That chart has a birth-time-sensitive Moon, so the reliability note shows.)
+- Screenshots: `walkthrough/start-here/` (390×844 and 800×1280, from the running dev build of this branch;
+  `E2E_URL=<dev url> node walkthrough/start-here/shoot.mjs` retakes them). `before-390.png` (full page) and
+  `before-800.png` are main without this change.
 
 ## Steps
 
-1. **Before — the page ran off the edge** (`walkthrough/01-before-800.png`).
-   On main at 800 px wide, the readings column is squeezed and the page scrolls sideways.
-   *"This is the chart on main at the Daylight's size. The readings column runs off the right edge."*
+1. **Name is optional, really** (`walkthrough/start-here/01-entry-390.png`).
+   The name field just says "(optional)". On main, a chart made without a name is gone on reload.
+   *"A newcomer can leave the name blank."*
 
-2. **After — one column below tablet width** (`02-chart-800.png`, `03-readings-800.png`).
-   Below 1024 px the bodygraph sits full-width on top and the readings follow. Tiles and cards carry a quiet ›.
-   *"Now the chart stacks. A layout test fails if any screen scrolls sideways at phone, tablet or desktop width."*
+2. **The first chart is kept, as "Me", with Start here under the banner** (`02-start-here-390.png`).
+   "Add your name" sits under the title. The card has three steps: strategy, authority in practice, and one
+   open (or undefined) center to notice, each with one practical line.
+   *"Their first chart is kept anyway, as Me. Under the type banner, a calm Start here card gives three steps."*
 
-3. **Tap a gate — the detail opens in place** (`04-gate-sheet.png`).
-   Tap Gate 34 on the bodygraph: a sheet with its activation, the three readings, the active line, all six
-   lines, channels and center. The gate stays lit behind it.
-   *"Tap anything and it opens in place, as a sheet on the tablet."*
+3. **Each step opens the detail panel** (`03-authority-sheet-390.png`, `04-center-sheet-390.png`).
+   Tap step 2: Sacral Authority opens as a sheet. Step 3 opens the Throat center with its gates and channels.
+   It's the same panel the chart, Transits and Timeline use.
+   *"Each step opens the same detail panel as everything else in the app."*
 
-4. **Links onward, with Back** (`05-line-onward.png`, `06-profile.png`).
-   Tap "2 · Strength that won't be summoned": the line opens, with what a second line means in general.
-   Back returns. Foundation tiles (type, authority, profile, definition, cross, circuit, variable) open the same way.
-   *"Everything in the panel links onward, so you never have to switch views to look something up."*
+4. **On phones the reading comes first** (`05-foundation-390.png`; full page: `before-390.png` vs `10-after-full-390.png`).
+   The Foundation moves up, right after the card, as two columns of compact tiles (tap for the full text). The
+   planet columns under the bodygraph give way to the Planets tab. The reliability note now reads: "Your Moon
+   could change if your birth time is off by 15 minutes or less. The rest of your foundation holds within that
+   range. If you know your time to the minute, the chart as shown is right."
+   *"The Foundation starts about one screen down instead of one point six; the tabs at about two and a third instead of three."*
 
-5. **Connection and Team** (`07-connection-list.png`, `08-connection-channel.png`, `09-team-member.png`).
-   On Connection, tap a channel under Electromagnetic: who brings each gate, and what kind of bond it is.
-   On Team, tap a role, then a person: their type, authority, profile, roles and channels.
-   *"Every channel, center, role and person opens to the pair's or the group's view."*
+5. **Rename, and "Me" stays private** (`06-rename-390.png`).
+   "Add your name" opens the edit dialog. "Me" is never put in the address bar, share links, invites, image
+   cards or the saved image's file name.
+   *"Add your name opens the edit dialog. Me never leaves this device."*
 
-6. **Wide screens — a side panel** (`10-desktop-side.png`).
-   At 1280 px the panel sits beside the chart (non-modal), so you can keep tapping the graph.
-   *"On a wide screen the same panel sits beside the chart."*
+6. **Got it is remembered; the tablet shows steps side by side** (`07-dismissed-reloaded-390.png`, `08-start-here-800.png`, `09-strategy-sheet-800.png`).
+   "Got it" hides the card for good (also for other charts). At 800 px the three steps sit in a row.
+   *"Got it hides the card, and it stays hidden after a reload."*
 
-Before/after screenshots of every view at 800×1280, light and dark: `walkthrough/ux-tablet/{before,after}/`.
+## Measured positions (top of each block, in screen heights)
 
-## On the new main (branch `tablet-on-main`)
+Same chart, dev builds of origin/main (1e11811) and this branch.
 
-The tablet pass replayed onto main after PR #10. Screenshots from the real build, 390×844 and
-800×1280: `walkthrough/tablet-on-main/` (`390-…` and `800-…`, light, plus dark for the two transit panels).
-Preview: https://uni.taildf9ce2.ts.net:8533/ now serves this branch.
+| | Foundation | Tabs | Bodygraph |
+|---|---|---|---|
+| 390×844, before (main) | 1.60 | 3.08 | 0.54 |
+| 390×844, after, card showing | **1.02** | **2.34** | 1.69 |
+| 390×844, after, card dismissed | **0.56** | **1.88** | 1.23 |
+| 800×1280, before (main) | 0.94 | 1.43 | 0.27 |
+| 800×1280, after, card showing | 1.21 | 1.68 | 0.53 |
+| 800×1280, after, card dismissed | 1.00 | 1.48 | 0.33 |
 
-7. **Transits use the same panel** (`800-light-transit-detail.png`).
-   Tap Transit Sun: the panel shows the gate's source (teal badge), your birth activations, the transiting
-   planets, and channels and center as the transit graph draws them. "Transit only" drops the birth side.
-   *"Transits open the same panel. It shows what the sky adds, and it matches the graph."*
-
-8. **The Timeline too, with timing** (`800-light-timeline-detail.png`, `390-light-timeline-detail.png`).
-   Tap a teal bar: the panel opens on that item, with how long the activation lasts and when it starts and ends.
-   *"On the Timeline, tapping a bar tells you what it is and how long it lasts."*
-
-9. **The phone nav fits** (`390-light-chart-centers.png`).
-   All five items, Timeline included, sit on one row and read in full at 360 and 390 px.
-   *"On a phone, all five sections fit on one line."*
+The tablet layout wasn't reordered (the brief asked for the phone), so there the card adds about a quarter
+screen until it's dismissed.
