@@ -64,22 +64,30 @@ const BIRTH_INPUT_SCHEMA = {
   ]
 };
 
+// OAuth scopes (granted on the consent page, carried in props.scope). Tokens
+// minted before scopes were enforced have no props.scope: read-only.
+function hasScope(ctx, scope) {
+  return (ctx?.scopes || []).includes(scope);
+}
+function scopeError(what, scope) {
+  return new Error(`${what} need the "${scope}" permission, which this connection was not granted. Reconnect Open Human Design from your AI app and allow it.`);
+}
+
 /** Resolve "Saved Name" → stored birth data (ai_access-gated, SQL-enforced). */
 async function lookupPerson(ctx, name) {
   if (!ctx?.userId || !ctx?.env?.DB) {
     throw new Error(`"${name}": saved names only work on the personal connector (sign in at openhumandesign.com and connect /mcp/my)`);
   }
+  if (!hasScope(ctx, 'charts:read')) throw scopeError('Saved names', 'charts:read');
+  // Exact (case-insensitive) match, never LIKE: "%" / "M%" let a caller probe
+  // names. Hidden people (AI access off) get the same answer as missing ones.
   const { results } = await ctx.env.DB.prepare(
-    `SELECT * FROM people WHERE user_id = ?1 AND deleted_at IS NULL AND name LIKE ?2 COLLATE NOCASE`
+    `SELECT * FROM people WHERE user_id = ?1 AND deleted_at IS NULL AND ai_access = 1 AND name = ?2 COLLATE NOCASE`
   ).bind(ctx.userId, name).all();
 
-  if (!results.length) {
-    // Distinguish "doesn't exist" from "exists but AI access is off"
-    throw new Error(`No saved person named "${name}". Use list_people to see who is available, or save_person to add them.`);
-  }
   const allowed = results.filter(r => r.ai_access);
   if (!allowed.length) {
-    throw new Error(`"${name}" is saved, but AI access is off for them. Enable it in the app (or re-save via save_person) to let your AI read their chart.`);
+    throw new Error(`No saved person named "${name}" that your AI can see. Use list_people to see who is available (people with AI access off stay hidden; the user can turn it on in the app), or save_person to add them.`);
   }
   if (allowed.length > 1) {
     throw new Error(`Multiple people named "${name}" — candidates: ${allowed.map(r => `${r.name} (born ${r.birth_date})`).join('; ')}. Ask the user which one.`);
@@ -661,6 +669,7 @@ function wirePerson(r) {
 const PERSONAL_TOOLS = [
   {
     name: 'list_people',
+    scope: 'charts:read',
     description: 'List the user\'s saved people that have AI access enabled, with their id (use the id to delete a specific one). Use their names directly as the birth input of compute_chart / compare_charts / get_transits / analyze_team. Free (not metered).',
     inputSchema: { type: 'object', properties: {} },
     async handler(_args, ctx) {
@@ -678,6 +687,7 @@ const PERSONAL_TOOLS = [
   },
   {
     name: 'save_person',
+    scope: 'charts:write',
     description: 'Save a person to the user\'s library so future conversations can reference them by name. Saving through the AI grants AI access automatically (the user is granting it by asking). Confirm with the user before saving someone new.',
     inputSchema: {
       type: 'object',
@@ -728,6 +738,7 @@ const PERSONAL_TOOLS = [
   },
   {
     name: 'delete_person',
+    scope: 'charts:write',
     description: 'Remove a saved person. Pass the id (from list_people) to delete an exact entry — preferred when names repeat. Or pass a name; if it is unique it deletes, otherwise the matching entries are returned so you can re-call with the right id. Always confirm with the user first; this syncs to all their devices.',
     inputSchema: {
       type: 'object',
@@ -800,7 +811,8 @@ async function meterOrThrow(ctx) {
 
 function buildServer(ctx) {
   const personal = !!ctx?.userId;
-  const tools = personal ? [...TOOLS, ...PERSONAL_TOOLS] : TOOLS;
+  const allTools = personal ? [...TOOLS, ...PERSONAL_TOOLS] : TOOLS;
+  const tools = allTools.filter(t => !t.scope || hasScope(ctx, t.scope));
 
   const server = new Server(
     { name: personal ? 'open-human-design-personal' : 'open-human-design', version: '0.4.0' },
@@ -842,7 +854,11 @@ function buildServer(ctx) {
 
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const tool = tools.find(t => t.name === request.params.name);
-    if (!tool) return errText(`Unknown tool: ${request.params.name}`);
+    if (!tool) {
+      const held = allTools.find(t => t.name === request.params.name);
+      if (held) return errText(scopeError(`${held.name} calls`, held.scope).message);
+      return errText(`Unknown tool: ${request.params.name}`);
+    }
     try {
       if (personal && METERED.has(tool.name)) await meterOrThrow(ctx);
       return await tool.handler(request.params.arguments || {}, ctx);
@@ -857,10 +873,12 @@ function buildServer(ctx) {
 /**
  * @param {Request} request
  * @param {object} [env] - Worker env (DB needed for personal tools)
- * @param {object} [props] - OAuth props ({ userId, email }) on /mcp/my
+ * @param {object} [props] - OAuth props ({ userId, email, scope }) on /mcp/my
  */
 export async function handleMcpRequest(request, env = null, props = null) {
-  const ctx = props?.userId ? { userId: props.userId, email: props.email, env } : { env };
+  const ctx = props?.userId
+    ? { userId: props.userId, email: props.email, scopes: Array.isArray(props.scope) ? props.scope : ['charts:read'], env }
+    : { env };
   const server = buildServer(ctx);
   const transport = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: undefined, // stateless — fresh instance per request

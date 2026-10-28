@@ -67,12 +67,14 @@ function stubDb(rows = []) {
   };
 }
 
-async function rpcPersonal(method, params, db) {
+const ALL_SCOPES = ['charts:read', 'charts:write'];
+
+async function rpcPersonal(method, params, db, scope = ALL_SCOPES) {
   const res = await handleMcpRequest(new Request('http://localhost/mcp', {
     method: 'POST',
     headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream' },
     body: JSON.stringify({ jsonrpc: '2.0', id: ++id, method, params })
-  }), { DB: db || stubDb() }, { userId: 'user-1', email: 't@example.com' });
+  }), { DB: db || stubDb() }, { userId: 'user-1', email: 't@example.com', ...(scope ? { scope } : {}) });
   const body = await res.json();
   assert.ok(!body.error, JSON.stringify(body.error));
   return body.result;
@@ -98,15 +100,47 @@ test('saved-name birth input resolves through ai_access-gated lookup', async () 
   assert.ok(out.humanDesign.type);
 });
 
-test('ai_access off → helpful refusal, not silence', async () => {
+test('ai_access off → same refusal as a missing name (no probing hidden people)', async () => {
   const db = stubDb([{
     id: 'p1', user_id: 'user-1', name: 'Mom', birth_date: '1962-04-11',
     birth_time: '08:15', time_unknown: 0, loc_timezone: -7,
     ai_access: 0, deleted_at: null
   }]);
-  const result = await rpcPersonal('tools/call', { name: 'compute_chart', arguments: { birth: 'Mom' } }, db);
-  assert.ok(result.isError);
-  assert.match(result.content[0].text, /AI access is off/);
+  const hidden = await rpcPersonal('tools/call', { name: 'compute_chart', arguments: { birth: 'Mom' } }, db);
+  const missing = await rpcPersonal('tools/call', { name: 'compute_chart', arguments: { birth: 'Mom' } }, stubDb([]));
+  assert.ok(hidden.isError);
+  assert.match(hidden.content[0].text, /No saved person named "Mom" that your AI can see/);
+  assert.equal(hidden.content[0].text, missing.content[0].text);
+});
+
+// --- OAuth scopes (audit M5: a charts:read token deleted people) ----------
+
+test('charts:read token lists no write tools and cannot delete or save', async () => {
+  const mom = [{ id: 'p1', name: 'Mom', birth_date: '1962-04-11', loc_name: null, ai_access: 1, deleted_at: null }];
+  const { tools } = await rpcPersonal('tools/list', {}, null, ['charts:read']);
+  const names = tools.map(t => t.name);
+  assert.ok(names.includes('list_people'));
+  assert.ok(!names.includes('delete_person') && !names.includes('save_person'), names.join(','));
+  for (const [name, args] of [['delete_person', { id: 'p1' }], ['save_person', { name: 'X', birth: { birthDate: '1990-01-01', utcOffset: 0 } }]]) {
+    const r = await rpcPersonal('tools/call', { name, arguments: args }, stubDb(mom), ['charts:read']);
+    assert.ok(r.isError, `${name} ran with a read-only token`);
+    assert.match(r.content[0].text, /charts:write/);
+  }
+});
+
+test('token without charts:read cannot list or resolve saved people', async () => {
+  const mom = [{ id: 'p1', name: 'Mom', birth_date: '1962-04-11', birth_time: '08:15', loc_timezone: -7, ai_access: 1, deleted_at: null }];
+  const { tools } = await rpcPersonal('tools/list', {}, null, []);
+  assert.ok(!tools.some(t => t.name === 'list_people'));
+  const r = await rpcPersonal('tools/call', { name: 'compute_chart', arguments: { birth: 'Mom' } }, stubDb(mom), []);
+  assert.ok(r.isError);
+  assert.match(r.content[0].text, /charts:read/);
+});
+
+test('tokens minted before scopes were enforced (no props.scope) are read-only', async () => {
+  const { tools } = await rpcPersonal('tools/list', {}, null, null);
+  const names = tools.map(t => t.name);
+  assert.ok(names.includes('list_people') && !names.includes('delete_person'), names.join(','));
 });
 
 test('saved names rejected without auth props', async () => {
