@@ -8,9 +8,10 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { calculateHumanDesign, compareHumanDesign, analyzePenta, CHANNELS, GATES, CENTERS } from 'natalengine';
+import { calculateHumanDesign, compareHumanDesign, analyzePenta, calculateTransitGates, CHANNELS, GATES, CENTERS } from 'natalengine';
 import { renderDetail } from '../src/lib/details.js';
 import { pairModel } from '../src/lib/pair.js';
+import { buildTransitGraph } from '../src/lib/transit-graph.js';
 import { PLANET_ORDER, AUTHORITY_TEXT, DEFINITION_TEXT } from '../src/lib/glossary.js';
 
 const BIRTHS = [
@@ -141,4 +142,50 @@ test('unknown kinds and ids render nothing instead of an empty panel', () => {
   assert.equal(renderDetail('chart', 'gate', 99, ctx), null);
   assert.equal(renderDetail('chart', 'nope', 1, ctx), null);
   assert.equal(renderDetail('chart', 'channel', '1-2', ctx), null);
+});
+
+// Transits and Timeline pass the transiting planets and the graph model, so
+// the panel says the same thing the transit graph shows.
+const transitCtx = (chart, date, mode) => {
+  const activations = calculateTransitGates(date, 0).gates;
+  return { chart, transit: { activations, model: buildTransitGraph(chart, activations, mode) } };
+};
+
+test('transit scope: every gate, channel and center opens in both graph modes', () => {
+  for (const chart of charts.slice(0, 4)) {
+    for (const mode of ['overlay', 'transit-only']) {
+      const ctx = transitCtx(chart, new Date(Date.UTC(2026, 8, 23, 12)), mode);
+      const items = [
+        ...Object.keys(GATES).map(g => ['gate', g]),
+        ...CHANNELS.map(ch => ['channel', ch.gates.join('-')]),
+        ...Object.keys(CENTERS).map(c => ['center', c])
+      ];
+      for (const [kind, id] of items) assertLinksResolve('chart', assertPanel('chart', kind, id, ctx), ctx, `${mode} ${kind}:${id}`);
+    }
+  }
+});
+
+test('transit scope: a gate lists its transiting planets, and transit-only drops the birth side', () => {
+  const chart = charts[0];
+  const ctx = transitCtx(chart, new Date(Date.UTC(2026, 8, 23, 12)), 'overlay');
+  const [planet, act] = Object.entries(ctx.transit.activations).find(([, a]) => a);
+  const overlay = renderDetail('chart', 'gate', String(act.gate), ctx).body;
+  assert.match(overlay, new RegExp(`Transit [A-Za-z ]+ · ${act.gate}\\.${act.line}`), `transit ${planet} missing`);
+  assert.match(overlay, /Birth activations/);
+  const natalGate = chart.gates.personality.sun.gate;
+  const only = transitCtx(chart, new Date(Date.UTC(2026, 8, 23, 12)), 'transit-only');
+  const body = renderDetail('chart', 'gate', String(natalGate), only).body;
+  assert.doesNotMatch(body, /Birth activations|Personality Sun/, 'transit-only view shows birth activations');
+});
+
+test('transit scope: center status follows the graph model, not the birth chart', () => {
+  for (const chart of charts) {
+    const ctx = transitCtx(chart, new Date(Date.UTC(2026, 8, 23, 12)), 'overlay');
+    const { model } = ctx.transit;
+    for (const key of Object.keys(CENTERS)) {
+      const tag = renderDetail('chart', 'center', key, ctx).body.match(/class="center-status ([a-z-]+)">([^<]+)</);
+      const expected = model.natalCenters.has(key) ? 'defined' : model.definedCenters.has(key) ? 'transit-defined' : 'undefined';
+      assert.equal(tag[1], expected, `${key}: ${tag[2]}`);
+    }
+  }
 });

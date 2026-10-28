@@ -79,11 +79,12 @@ await check('arrow key moves the selected time by one minute', async () => {
 
 await check('clicking a transit bar opens the detail with its timing; Escape closes it', async () => {
   await desktop.locator(`${tl} .tl-bar[data-source="transit"]`).first().click();
-  const dialog = desktop.locator('#gate-detail[role="dialog"]');
-  await dialog.locator('.tl-detail-timing').waitFor({ timeout: 5000 });
-  assert.match(await dialog.locator('.tl-detail-timing').innerText(), /Duration/);
+  const panel = desktop.locator('#detail-panel');
+  await panel.locator('.tl-detail-timing').waitFor({ timeout: 5000 });
+  assert.match(await panel.locator('.tl-detail-timing').innerText(), /Duration/);
+  assert.match(await panel.innerText(), /Birth chart \+ transits/); // the panel reads the timeline's moment
   await desktop.keyboard.press('Escape');
-  await dialog.waitFor({ state: 'hidden', timeout: 5000 });
+  await panel.waitFor({ state: 'hidden', timeout: 5000 });
 });
 
 await check('24 hours is the local day, and follows a timezone change', async () => {

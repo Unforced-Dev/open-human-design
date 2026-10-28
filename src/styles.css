@@ -1883,15 +1883,18 @@ body {
 
   .logo { gap: 4px; flex-shrink: 0; height: 40px; }
 
+  /* Five items share the row by their own width, so the longest label
+     ("Connection") still fits whole at 360px. */
   .nav {
     order: 3;
     flex: 1 0 100%;
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    display: flex;
+    justify-content: space-between;
     gap: 2px;
   }
 
   .nav-link {
+    flex: 1 1 auto;
     white-space: nowrap;
     padding: 8px 4px;
     font-size: 12.5px;
@@ -1955,23 +1958,18 @@ input[aria-invalid="true"] { border-color: #b3422f !important; }
 .transit-key.both { border:2px solid var(--transit-source); border-radius:50%; width:14px; height:14px; }
 .transit-key.center { border:1px solid var(--transit-source); background:repeating-linear-gradient(135deg,var(--transit-source-soft) 0 3px,var(--transit-source) 3px 4px); }
 .transit-source-badge { background:var(--transit-source-soft); color:var(--transit-source-text); }
-.gate-detail-body > .transit-source-badge { margin-left:0; }
 .transit-source-badge.natal, .transit-source-badge.inactive { background:var(--bg-sunken); color:var(--text-secondary); }
-.gate-detail-transits { color:var(--transit-source-text); }
 .center-status.transit-defined { color:var(--transit-source-text); }
 .gate-chip.transit-active { background:var(--transit-source-soft); color:var(--transit-source-text); border-color:var(--transit-source); }
+.dp-tags .transit-source-badge { margin-left:0; }
+.dp-chip { display:inline-flex; align-items:center; min-height:36px; padding:6px 12px; border-radius:10px; font-size:13px; }
+.dp-chip.act-transit { background:var(--transit-source-soft); color:var(--transit-source-text); font-weight:600; }
 
 /* Direct drill-down for transit exploration. */
 /* Reuse the original card colors and row-lit accent without overriding them. */
 .transit-summary-button { display:block; width:100%; text-align:left; font:inherit; color:var(--text); cursor:pointer; }
 .transit-summary-button > span { display:block; }
 .transit-summary-button > .transit-source-badge { display:inline-block; }
-.transit-channel-gates { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:20px 0; }
-.transit-detail-link { display:grid; gap:10px; text-align:left; background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:8px; padding:16px; font:inherit; cursor:pointer; }
-.transit-detail-gate { display:flex; align-items:center; flex-wrap:wrap; }
-.transit-detail-action { font-size:12px; color:var(--accent); text-decoration:underline; }
-button.cd-channel { text-align:left; font-family:inherit; line-height:inherit; cursor:pointer; background:transparent; border:0; }
-button.cd-channel:hover { background:var(--accent-soft); }
 
 /* Let the existing card hover and dark-theme rules take precedence. */
 .transit-summary-button:where(.transit-completion, .center-card, .gate-item) { background:transparent; }

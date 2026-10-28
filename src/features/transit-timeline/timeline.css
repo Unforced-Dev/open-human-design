@@ -20,11 +20,11 @@
 .tl button, .tl input, .tl select { font: inherit; color: inherit; }
 .tl button { cursor: pointer; }
 .tl button:disabled { opacity: .4; cursor: default; }
-.tl button[data-action]:not(.gate-detail-close), .tl select, .tl input:not([type="checkbox"]) {
+.tl button[data-action], .tl select, .tl input:not([type="checkbox"]) {
   border: 1px solid var(--tl-line); border-radius: 5px; background: var(--tl-surface);
   min-height: 32px; padding: 4px 8px; font-size: 12px; max-width: 100%;
 }
-.tl button[data-action]:not(.gate-detail-close):not(:disabled):hover { border-color: var(--transit-source-text); background: var(--transit-source-soft); }
+.tl button[data-action]:not(:disabled):hover { border-color: var(--transit-source-text); background: var(--transit-source-soft); }
 .tl :focus-visible { outline: 2px solid var(--tl-cursor-color); outline-offset: 2px; }
 .tl label { display: flex; flex-direction: column; gap: 3px; font-size: 10px; font-weight: 500; color: var(--text-secondary); }
 .tl-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 10px; }
@@ -61,7 +61,7 @@
 .tl-birth-head > :first-child { text-align: right; padding-right: 1px; }
 .tl-birth-head > :last-child { text-align: left; padding-left: 1px; }
 .tl-birth-head > span { min-width: 0; line-height: 18px; }
-.tl .tl-birth-head .bg-planets-head { display: block; margin-bottom: 4px; overflow: hidden; white-space: nowrap; text-transform: none; letter-spacing: 0; }
+.tl .tl-birth-head .bg-planets-head { display: block; margin-bottom: 4px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; text-transform: none; letter-spacing: 0; }
 .tl .tl-birth-head-en .bg-planets-head { font-size: 8px; }
 .tl-birth-row { height: 17px; }
 .tl .tl-birth-value { min-width: 0; }
@@ -127,7 +127,7 @@
 .tl-day-band[data-tone="1"] { background: var(--tl-day-odd); }
 .tl-gridline { position: absolute; top: 0; bottom: 0; width: 1px; z-index: 1; background: var(--tl-day-divider); pointer-events: none; }
 .tl .tl-bar { position: absolute; top: 0; height: 100%; display: flex; align-items: center; min-width: 2px; overflow: hidden; border: 0 solid transparent; border-radius: 0; background: var(--tl-transit); color: var(--tl-transit-ink); font-size: 11px; line-height: 1.2; padding: 0; cursor: pointer; white-space: nowrap; text-align: left; }
-.tl-bar > span { position: relative; z-index: 2; padding: 0 7px; pointer-events: none; }
+.tl-bar > span { position: relative; z-index: 2; min-width: 0; padding: 0 7px; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
 .tl .tl-bar[data-source="natal"] { background: var(--tl-birth); color: var(--tl-surface); }
 .tl .tl-bar[data-source="completed"] { border-left: 5px solid var(--tl-birth); }
 .tl .tl-bar[data-source="both"] { background: repeating-linear-gradient(135deg, var(--tl-transit) 0 6px, var(--transit-source-soft) 6px 9px); }
@@ -149,36 +149,15 @@
 .tl-loading-note { margin: 14px 0 0; color: var(--text-secondary); font-size: 13px; line-height: 1.5; }
 .tl-calculation[data-state="error"] .tl-loading-meter { display: none; }
 .tl-calculation [data-action="retry"] { margin-top: 16px; }
-/* Align gate identity/status with timing; complete planet data flows below. */
-.tl-detail-header { display: grid; grid-template-columns: minmax(0, 1fr); align-items: stretch; gap: 14px; margin-bottom: 8px; }
-.tl-detail-header.tl-detail-has-timing { grid-template-columns: minmax(0, 1fr) 176px; }
-.tl-detail-heading { min-width: 0; display: flex; flex-direction: column; }
-.tl-detail-heading > .detail-name { margin-bottom: 8px; }
-.tl-detail-statuses { margin-top: auto; display: grid; gap: 1px; }
-.tl-detail-activations { display: grid; gap: 0; margin-bottom: 12px; }
-.tl-detail-source.gate-detail-acts, .tl-detail-source.gate-detail-transits { padding: 0; margin: 0; border: 0; font-size: 13px; line-height: 1.65; }
-.tl-activation-label { color: var(--text-secondary); font-size: 10px; line-height: 1.4; }
-.tl-detail-activations .tl-activation-row { display: block; font-weight: 600; overflow-wrap: anywhere; }
-.tl-activation-transit { color: var(--transit-source-text); }
-.tl-detail-statuses .gate-detail-inactive { margin: 0; font-size: 10px; line-height: 1.4; font-style: normal; }
-.tl-detail-heading .center-detail-head { margin-bottom: 0; }
-.tl-detail-heading .lens-note { margin: 0 0 6px; }
-.tl-detail-timing { min-width: 0; display: flex; flex-direction: column; padding-left: 10px; border-left: 1px solid var(--border-subtle); font-size: 10px; line-height: 1.4; }
-.tl-timing-source { display: flex; justify-content: space-between; gap: 6px; color: var(--text-secondary); margin-bottom: 3px; }
+/* Activation interval, shown in the shared detail panel under the item's name. */
+.tl-detail-timing { margin: 2px 0 12px; padding: 10px 12px; border-radius: var(--radius); background: var(--transit-source-soft); font-size: 12px; line-height: 1.4; }
+.tl-timing-source { display: flex; gap: 6px; color: var(--transit-source-text); font-weight: 600; margin-bottom: 6px; }
 .tl-timing-source > span { cursor: help; }
-.tl-timing-values { flex: 1; display: grid; align-content: space-between; gap: 3px; margin: 0; }
+.tl-timing-values { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 0; }
+.tl-timing-values > div { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
 .tl-timing-values dt { color: var(--text-secondary); }
 .tl-timing-values dd { margin: 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-.tl-timing-duration { display: flex; align-items: baseline; gap: 5px; margin-bottom: 3px; }
-.tl-timing-duration dd { font-size: 14px; font-weight: 500; }
-.tl-timing-boundary { position: relative; padding-left: 11px; }
-.tl-timing-boundary::before { content: ''; position: absolute; left: 1px; top: .45em; width: 4px; height: 4px; border: 1px solid var(--text-tertiary); border-radius: 50%; }
-.tl-timing-boundary + .tl-timing-boundary::after { content: ''; position: absolute; left: 3px; bottom: calc(100% - .45em); height: calc(100% - 2px); border-left: 1px solid var(--border-subtle); }
-.tl-timing-boundary dt { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-@media (max-width: 480px) {
-  .tl-detail-header.tl-detail-has-timing { grid-template-columns: minmax(0, 1fr); gap: 10px; }
-  .tl-detail-timing { border-left: 0; border-top: 1px solid var(--border-subtle); padding: 8px 0 0; }
-}
+.tl-timing-duration dd { font-size: 14px; font-weight: 600; }
 @media (max-width: 1050px) {
   .tl { padding: 12px 16px 24px; --tl-canvas-height: clamp(490px, calc(100dvh - 212px), 620px); }
   .tl-workspace { grid-template-columns: minmax(350px, .95fr) minmax(0, 1.2fr); gap: 12px; }

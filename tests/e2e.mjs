@@ -173,29 +173,30 @@ await check('transits view renders with overlay graph', async () => {
   if (!/Transit Sun/.test(content)) throw new Error(content.slice(0, 120));
 });
 
-await check('transit details open outside the hidden natal view and retain their context', async () => {
+await check('transit details open in the shared panel and retain their context', async () => {
   await page.fill('#transit-date', '2026-09-23');
   await page.locator('#transit-date').press('Tab');
   await page.click('#transit-bodygraph .bg-gate[data-gate="20"]');
-  await page.waitForSelector('#gate-detail:not(.hidden)', { timeout: 3000 });
-  const text = await page.textContent('#gate-detail');
+  await page.waitForSelector('#detail-panel.open', { timeout: 3000 });
+  const text = await page.textContent('#detail-panel');
   if (!/Transit Uranus/.test(text) || !/20\.6/.test(text)) throw new Error('transit activation missing');
   if (!await page.$eval('#transit-bodygraph .bg-gate[data-gate="20"]', el => el.classList.contains('bg-lit')))
     throw new Error('transit graph selection was not pinned');
-  await page.click('#gate-detail [data-lens="iching"]');
-  if (!/Line 6/.test(await page.textContent('#lens-content'))) throw new Error('transit line reading missing');
-  await page.click('#gate-detail [data-lens="hd"]');
+  await page.click('#detail-panel [data-lens="iching"]');
+  if (!/Line 6/.test(await page.textContent('#detail-panel .dp-lens'))) throw new Error('transit line reading missing');
+  await page.click('#detail-panel [data-lens="hd"]');
   await page.keyboard.press('Escape');
-  await page.waitForSelector('#gate-detail', { state: 'hidden' });
+  await page.waitForSelector('#detail-panel', { state: 'hidden' });
   await page.click('#transit-bodygraph .bg-center[data-center="throat"]');
-  await page.waitForSelector('#gate-detail .center-detail-card');
-  await page.click('#gate-detail .gate-chip[data-gate="20"]');
-  if (!/Transit Uranus/.test(await page.textContent('#gate-detail'))) throw new Error('context lost on center-to-gate navigation');
-  await page.click('#gate-detail .gate-detail-back');
-  await page.waitForSelector('#gate-detail .center-detail-card');
-  await page.click('#gate-detail', { position: { x: 5, y: 5 } });
-  await page.waitForSelector('#gate-detail', { state: 'hidden' });
-  if (await page.$eval('body', el => el.classList.contains('modal-open'))) throw new Error('scroll lock survived dismissal');
+  await page.waitForSelector('#detail-panel.open .gate-chip');
+  await page.click('#detail-panel .gate-chip[data-gate="20"]');
+  if (!/Transit Uranus/.test(await page.textContent('#detail-panel'))) throw new Error('context lost on center-to-gate navigation');
+  await page.click('#detail-panel .dp-back');
+  await page.waitForSelector('#detail-panel.open .gate-chip');
+  await page.click('#detail-panel .dp-close');
+  await page.waitForSelector('#detail-panel', { state: 'hidden' });
+  if (await page.$eval('#transit-bodygraph .bodygraph-svg', el => el.classList.contains('bg-dimmed')))
+    throw new Error('graph pin survived dismissal');
 });
 
 await check('coexisting graphs resolve all paints within their own SVG', async () => {

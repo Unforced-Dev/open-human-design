@@ -6,7 +6,8 @@
  *   npm run e2e:layout     # in another (E2E_URL to point elsewhere)
  *
  * SHOT_DIR=walkthrough/ux-tablet/after npm run e2e:layout
- *   also saves a full-page screenshot of every state at 800x1280.
+ *   also saves a full-page screenshot of every state at 800x1280
+ *   (SHOT_WIDTHS=390,800 for more widths; files get a -390 suffix).
  *
  * Needs no network: people are entered with a manual UTC offset.
  */
@@ -17,7 +18,7 @@ import { mkdirSync } from 'node:fs';
 const BASE = process.env.E2E_URL || 'http://localhost:5174';
 const CHROME = process.env.CHROME_PATH || '/usr/bin/chromium';
 const SHOT_DIR = process.env.SHOT_DIR || '';
-const SHOT_WIDTH = 800;
+const SHOT_WIDTHS = (process.env.SHOT_WIDTHS || '800').split(',').map(Number);
 
 const SIZES = [
   { w: 360, h: 780 },
@@ -57,7 +58,7 @@ function findProblems() {
     const cs = getComputedStyle(el);
     if (cs.display === 'none' || cs.visibility === 'hidden' || cs.opacity === '0') return false;
     const r = el.getBoundingClientRect();
-    return r.width > 0 && r.height > 0;
+    return r.width > 1 && r.height > 1; // 1px screen-reader-only text clips on purpose
   };
 
   const docOver = document.documentElement.scrollWidth - vw;
@@ -87,6 +88,15 @@ function findProblems() {
     }
     if (!clipped) problems.push(`${describe(el)} sticks out of the viewport (${Math.round(r.left)}..${Math.round(r.right)} of ${vw})`);
   }
+  // Every nav item must show its whole label, all on one row.
+  const links = [...document.querySelectorAll('.header .nav-link')].filter(visible);
+  for (const link of links) {
+    const r = link.getBoundingClientRect();
+    if (link.scrollWidth > link.clientWidth + 1 || r.right > vw + 1)
+      problems.push(`nav "${link.textContent.trim()}" does not fit (${link.scrollWidth}px in ${link.clientWidth}px)`);
+    if (Math.abs(r.top - links[0].getBoundingClientRect().top) > 1)
+      problems.push(`nav "${link.textContent.trim()}" wraps to a second row`);
+  }
   // One line per offender is plenty — children of a wide parent repeat it.
   return [...new Set(problems)].slice(0, 12);
 }
@@ -111,9 +121,18 @@ async function nav(page, view) {
 
 async function closeDetail(page) {
   await page.evaluate(() => {
-    for (const b of document.querySelectorAll('.gate-detail:not(.hidden) .gate-detail-close, .detail-panel.open .dp-close')) b.click();
+    document.querySelector('.detail-panel.open .dp-close')?.click();
   });
   await page.waitForTimeout(250);
+}
+
+/** Wait until the detail panel has finished sliding in. */
+async function settled(page) {
+  await page.waitForSelector('#detail-panel.open');
+  await page.waitForFunction(() => {
+    const r = document.getElementById('detail-panel').getBoundingClientRect();
+    return r.right <= innerWidth + 1 && r.bottom <= innerHeight + 1;
+  }, null, { timeout: 3000 });
 }
 
 async function tapGate(page, scope, gate) {
@@ -164,7 +183,23 @@ const STATES = [
     await nav(page, 'transits');
     await page.waitForSelector('#transit-bodygraph .bodygraph-svg');
   }],
+  ['transit-detail', async (page) => {
+    await page.$eval('#transit-content [data-detail^="gate:"]', el => el.click());
+    await settled(page);
+  }],
+  ['timeline', async (page) => {
+    await closeDetail(page);
+    await nav(page, 'timeline');
+    await page.waitForFunction(() => document.querySelector('#timeline-view .tl-table')?.getAttribute('aria-busy') === 'false', null, { timeout: 60000 });
+    await page.waitForTimeout(300);
+  }],
+  ['timeline-detail', async (page) => {
+    await page.$eval('#timeline-view .tl-bar[data-source="transit"]', el => el.click());
+    await page.waitForSelector('#detail-panel.open .tl-detail-timing');
+    await settled(page);
+  }],
   ['connection', async (page) => {
+    await closeDetail(page);
     await nav(page, 'connection');
     const ben = await page.$eval('#conn-person', s => [...s.options].find(o => o.textContent.includes('Ben'))?.value);
     await page.selectOption('#conn-person', ben);
@@ -218,11 +253,12 @@ for (const theme of THEMES) {
       } else {
         console.log(`✔ ${label}`);
       }
-      if (SHOT_DIR && w === SHOT_WIDTH) {
+      if (SHOT_DIR && SHOT_WIDTHS.includes(w)) {
         mkdirSync(SHOT_DIR, { recursive: true });
         // Fixed sheets and dialogs only make sense in the viewport they cover.
         const overlay = await page.$('#detail-panel.open, .modal-overlay');
-        await page.screenshot({ path: `${SHOT_DIR}/${theme}-${name}.png`, fullPage: !overlay });
+        const suffix = w === 800 ? '' : `-${w}`;
+        await page.screenshot({ path: `${SHOT_DIR}/${theme}-${name}${suffix}.png`, fullPage: !overlay });
       }
     }
     await ctx.close();

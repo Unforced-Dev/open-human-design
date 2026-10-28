@@ -11,7 +11,10 @@
  * them in place, so nobody has to leave the panel to learn what a word means.
  *
  * ctx shapes:
- *   chart: { chart, geneKeys?, transitGates?: Set }
+ *   chart: { chart, geneKeys?, transit?: { activations, model } }
+ *          transit is set by the Transits and Timeline views: activations are
+ *          the transiting planets ({ sun: { gate, line }, … }) and model is the
+ *          graph model from lib/transit-graph.js, so panel and graph agree.
  *   pair:  { a, b, nameA, nameB, comparison, model }   (see lib/pair.js)
  *   team:  { result, charts, names }
  */
@@ -22,6 +25,7 @@ import {
   HEXAGRAM_DESCRIPTIONS, GENE_KEY_DESCRIPTIONS
 } from 'natalengine';
 import { esc } from './format.js';
+import { TRANSIT_SOURCE_LABELS } from './transit-graph.js';
 import {
   LINE_THEMES, TYPE_GUIDANCE, CIRCUIT_DESC, PLANET_ORDER, PLANET_GLYPHS, PLANET_NAMES,
   PLANET_TEXT, SIDE_TEXT, SUBSTRUCTURE_TEXT, AUTHORITY_TEXT, DEFINITION_TEXT, DEFINED_TEXT,
@@ -96,6 +100,26 @@ const planetId = (side, planet) => `${side}.${planet}`;
 const actLabel = (a) => `${PLANET_GLYPHS[a.planet]} ${sideName(a.side)} ${PLANET_NAMES[a.planet]} · ${a.gate}.${a.line}`;
 const actLink = (a) => dl('planet', planetId(a.side, a.planet), esc(actLabel(a)), `act-${a.side}`);
 
+// ---------- transit views (Transits, Timeline) ----------
+const transitOnly = (transit) => transit?.model.mode === 'transit-only';
+/** Transiting planets in a gate: [{ planet, gate, line }]. */
+const transitActsOf = (transit, g) => transit
+  ? PLANET_ORDER.filter(p => transit.activations[p]?.gate === g).map(p => ({ planet: p, ...transit.activations[p] }))
+  : [];
+const transitChip = (a) => `<span class="dp-chip act-transit">${PLANET_GLYPHS[a.planet]} Transit ${PLANET_NAMES[a.planet]} · ${a.gate}.${a.line}</span>`;
+const sourceBadge = (source) => `<span class="circuit-badge transit-source-badge ${source}">${TRANSIT_SOURCE_LABELS[source]}</span>`;
+const transitViewNote = (transit) => `<p class="dp-note">${transitOnly(transit)
+  ? 'Transit only: the planets at the selected time, without your birth chart.'
+  : 'Birth chart + transits. Transit additions are temporary and do not change your birth chart.'}</p>`;
+const inTransitView = (transit, ch) => transit.model.channels.some(c => channelKey(c) === channelKey(ch));
+/** How a center reads in the transit graph: { cls, label }. */
+function transitCenterStatus(transit, key) {
+  const { model } = transit;
+  if (!transitOnly(transit) && model.natalCenters.has(key)) return { cls: 'defined', label: 'Defined in birth chart' };
+  if (model.definedCenters.has(key)) return { cls: 'transit-defined', label: transitOnly(transit) ? 'Defined by transits' : 'Defined with transits' };
+  return { cls: 'undefined', label: 'Not defined in this view' };
+}
+
 // ---------- lens (gate reading tradition) ----------
 let lens = 'hd';
 export const LENSES = [['hd', 'Human Design'], ['iching', 'I Ching'], ['gk', 'Gene Keys']];
@@ -143,17 +167,22 @@ function centerStatus(chart, key) {
   return 'open';
 }
 
-function chartGate(g, { chart, transitGates }) {
+function chartGate(g, { chart, transit }) {
   const gate = GATES[g];
   if (!gate) return null;
-  const acts = activationsOf(chart, g);
-  const activeLines = [...new Set(acts.map(a => a.line))].sort((x, y) => x - y);
+  const only = transitOnly(transit);
+  const acts = only ? [] : activationsOf(chart, g);
+  const skyActs = transitActsOf(transit, g);
+  const activeLines = [...new Set([...acts, ...skyActs].map(a => a.line))].sort((x, y) => x - y);
   const definedKeys = new Set(chart.channels.map(channelKey));
   const active = new Set(chart.gates.all);
 
-  const actHtml = acts.length
-    ? chips(acts.map(actLink))
-    : `<p class="dp-muted">Not active in this chart — you meet this energy through other people and transits.</p>`;
+  const actHtml = !transit
+    ? section('In your chart', acts.length
+      ? chips(acts.map(actLink))
+      : `<p class="dp-muted">Not active in this chart — you meet this energy through other people and transits.</p>`)
+    : `${only ? '' : section('Birth activations', acts.length ? chips(acts.map(actLink)) : '<p class="dp-muted">Not active in your birth chart.</p>')}
+      ${section('Transit activations', skyActs.length ? chips(skyActs.map(transitChip)) : '<p class="dp-muted">Not activated by the transits at the selected time.</p>')}`;
 
   const lineCards = lens === 'hd' ? activeLines.map(l => {
     const ld = LINE_DESCRIPTIONS[g]?.[l];
@@ -162,39 +191,41 @@ function chartGate(g, { chart, transitGates }) {
 
   const channelRows = channelsOfGate(g).map(ch => {
     const other = ch.gates.find(x => x !== g);
-    const status = definedKeys.has(channelKey(ch)) ? 'Defined in your chart'
+    const viewOn = transit ? inTransitView(transit, ch) : definedKeys.has(channelKey(ch));
+    const status = transit && viewOn ? TRANSIT_SOURCE_LABELS[transit.model.channelSource(ch)]
+      : only ? 'Not complete at the selected time'
+      : definedKeys.has(channelKey(ch)) ? 'Defined in your chart'
       : active.has(g) && !active.has(other) ? `Hanging — you're drawn to people with Gate ${other}`
       : active.has(other) && !active.has(g) ? `You carry the other half (Gate ${other})`
       : 'Not active';
-    return `<div class="dp-row">${channelLink(ch, definedKeys.has(channelKey(ch)) ? 'on' : '')}<span class="dp-row-note">${esc(status)}</span></div>`;
+    return `<div class="dp-row">${channelLink(ch, viewOn ? 'on' : '')}<span class="dp-row-note">${esc(status)}</span></div>`;
   }).join('');
 
-  const cs = centerStatus(chart, gate.center);
-  const transitNote = transitGates?.has(g)
-    ? `<p class="dp-callout">A transiting planet sits in this gate on the chosen date.</p>` : '';
+  const centerNote = transit ? transitCenterStatus(transit, gate.center).label : `${cap(centerStatus(chart, gate.center))} in your chart`;
 
   return {
     label: `Gate ${g}`,
     title: esc(gate.name),
     pin: { kind: 'gate', id: g },
     body: `
-      ${transitNote}
-      ${section('In your chart', actHtml)}
+      ${transit ? `<div class="dp-tags">${sourceBadge(transit.model.gateSource(g))}</div>${transitViewNote(transit)}` : ''}
+      ${actHtml}
       ${lensSwitch()}
       <div class="dp-lens">${lensBody(g, activeLines)}</div>
       ${lineCards}
       ${section('Lines of this gate', lineChips(g, activeLines))}
       ${section('Channels', channelRows)}
-      ${section('Center', `<div class="dp-row">${centerLink(gate.center)}<span class="dp-row-note">${cap(cs)} in your chart</span></div>`)}
+      ${section('Center', `<div class="dp-row">${centerLink(gate.center)}<span class="dp-row-note">${centerNote}</span></div>`)}
       ${GATE_DESCRIPTIONS[g]?.harmonic ? section('Harmonic gate', gateLink(GATE_DESCRIPTIONS[g].harmonic)) : ''}`
   };
 }
 
-function chartLine(id, { chart }) {
+function chartLine(id, { chart, transit }) {
   const [g, l] = String(id).split('.').map(Number);
   const ld = LINE_DESCRIPTIONS[g]?.[l];
   if (!GATES[g] || !ld) return null;
-  const here = chart ? activationsOf(chart, g).filter(a => a.line === l) : [];
+  const here = chart && !transitOnly(transit) ? activationsOf(chart, g).filter(a => a.line === l) : [];
+  const sky = transitActsOf(transit, g).filter(a => a.line === l);
   const theme = LINE_THEMES[l];
   return {
     label: `Gate ${g} · Line ${l}`,
@@ -203,13 +234,14 @@ function chartLine(id, { chart }) {
     body: `
       ${para(ld.description)}
       ${here.length ? section('In your chart', chips(here.map(actLink))) : ''}
+      ${sky.length ? section('Transit activations', chips(sky.map(transitChip))) : ''}
       ${section(`Line ${l} in general`, `<div class="dp-row">${dl('linetheme', l, `${l} · ${esc(theme.name)}`)}</div>${para(theme.text, 'dp-text dp-soft')}`)}
       ${section('Gate', gateLink(g))}
       ${section('Other lines of this gate', lineChips(g, chart ? activationsOf(chart, g).map(a => a.line) : []))}`
   };
 }
 
-function chartChannel(id, { chart, transitGates }) {
+function chartChannel(id, { chart, transit }) {
   const ch = CHANNEL_BY_KEY[id];
   if (!ch) return null;
   const desc = CHANNEL_DESCRIPTIONS[id];
@@ -219,58 +251,68 @@ function chartChannel(id, { chart, transitGates }) {
   const status = defined ? 'Defined in your chart — a consistent part of who you are.'
     : have.length === 1 ? `You carry Gate ${have[0]}, one half of this channel. You feel the other half through people and transits with Gate ${ch.gates.find(g => g !== have[0])}.`
     : 'Not active in your chart — you meet it in others.';
-  const viaTransit = transitGates && !defined && ch.gates.every(g => active.has(g) || transitGates.has(g));
+  const only = transitOnly(transit);
+  const viewOn = transit && inTransitView(transit, ch);
+  const viewSource = viewOn && transit.model.channelSource(ch);
+  // In a transit view the graph model says whether the channel is complete and where it comes from.
+  const viewCallout = !transit ? ''
+    : !viewOn ? `<p class="dp-callout">A full channel needs both gates. At least one is inactive ${only ? 'in the sky' : 'in your chart and the sky'} at the selected time.</p>`
+    : viewSource === 'natal' ? ''
+    : `<p class="dp-callout on">${only ? 'Both gates are active in the sky at the selected time, so the channel is complete.'
+      : `The transits complete this channel${have.length ? ' through your chart' : ''} at the selected time, so you live its energy for a while.`}</p>`;
+  const gateNote = (g) => transit ? TRANSIT_SOURCE_LABELS[transit.model.gateSource(g)] : active.has(g) ? 'active' : 'open';
+  const gateOn = (g) => transit ? transit.model.activeGates.has(g) : active.has(g);
   return {
     label: `Channel ${ch.gates.join('–')}`,
     title: `Channel of ${esc(ch.name)}`,
-    pin: { kind: 'gate', id: have[0] ?? ch.gates[0] },
+    pin: { kind: 'channel', id },
     body: `
       <div class="dp-keynote">${esc(ch.theme)}</div>
-      <p class="dp-callout ${defined ? 'on' : ''}">${esc(status)}</p>
-      ${viaTransit ? `<p class="dp-callout">On the chosen date the transits complete this channel${have.length ? ' through your chart' : ''}, so you live its energy for a while.</p>` : ''}
+      ${transit ? `<div class="dp-tags">${viewOn ? sourceBadge(viewSource) : sourceBadge('inactive')}</div>${transitViewNote(transit)}` : ''}
+      ${only ? '' : `<p class="dp-callout ${defined ? 'on' : ''}">${esc(status)}</p>`}
+      ${viewCallout}
       ${para(desc?.description)}
-      ${defined && desc?.whenDefined ? para(desc.whenDefined, 'dp-text dp-soft') : ''}
-      ${section('Gates', ch.gates.map(g => `<div class="dp-row">${gateLink(g, active.has(g) ? 'on' : '')}<span class="dp-row-note">${active.has(g) ? 'active' : 'open'}</span></div>`).join(''))}
+      ${defined && !only && desc?.whenDefined ? para(desc.whenDefined, 'dp-text dp-soft') : ''}
+      ${section('Gates', ch.gates.map(g => `<div class="dp-row">${gateLink(g, gateOn(g) ? 'on' : '')}<span class="dp-row-note">${gateNote(g)}</span></div>`).join(''))}
       ${section('Connects', chips(ch.centers.map(c => centerLink(c))))}
       ${section('Circuit', circuitLink(ch.circuit))}`
   };
 }
 
-/** Centers a date's transits define on top of the natal chart (not natally defined). */
-function transitDefinedCenters(chart, transitGates) {
-  const lit = new Set([...chart.gates.all, ...transitGates]);
-  const out = new Set();
-  for (const ch of CHANNELS) {
-    if (lit.has(ch.gates[0]) && lit.has(ch.gates[1])) for (const k of ch.centers) out.add(k);
-  }
-  for (const k of chart.centers.definedNames) out.delete(k);
-  return out;
-}
-
-function chartCenter(key, { chart, transitGates }) {
+function chartCenter(key, { chart, transit }) {
   const c = CENTERS[key];
   if (!c) return null;
-  const status = centerStatus(chart, key);
-  const byTransit = transitGates && transitDefinedCenters(chart, transitGates).has(key);
+  const only = transitOnly(transit);
+  const view = transit && transitCenterStatus(transit, key);
+  const status = only ? (view.cls === 'undefined' ? 'undefined' : 'defined') : centerStatus(chart, key);
   const meaning = status === 'defined' ? (c.definedMeaning || c.pressure)
     : status === 'undefined' ? c.undefinedMeaning : c.openMeaning;
-  const active = new Set(chart.gates.all);
-  const definedKeys = new Set(chart.channels.map(channelKey));
+  const active = transit ? transit.model.activeGates : new Set(chart.gates.all);
+  const channelsOn = new Set((transit ? transit.model.channels : chart.channels).map(channelKey));
   const touching = CHANNELS.filter(ch => ch.centers?.includes(key));
+  const chipClass = (g) => !active.has(g) ? '' : transit?.model.gateSource(g) === 'transit' ? 'transit-active' : 'active';
+  const byTransit = view?.cls === 'transit-defined';
+  const transitCallout = !byTransit ? ''
+    : only ? `<p class="dp-callout on">A complete transit channel defines this center at the selected time.</p>`
+    : `<p class="dp-callout on">${cap(status)} in your chart, but the transits at the selected time define it. For now you feel its consistent energy: ${esc((c.definedMeaning || c.pressure || '').replace(/\.$/, ''))}.</p>`;
   return {
     label: `${esc(centerName(key))} Center`,
     title: esc(c.theme || c.name),
     pin: { kind: 'center', id: key },
     body: `
-      <div class="dp-tags"><span class="center-status ${status}">${cap(status)}</span>${c.biological ? `<span class="dp-tag">${esc(c.biological)}</span>` : ''}${c.motor ? '<span class="dp-tag">Motor</span>' : ''}</div>
-      ${byTransit ? `<p class="dp-callout on">${cap(status)} in your chart, but the transits on the chosen date define it. For now you feel its consistent energy: ${esc((c.definedMeaning || c.pressure || '').replace(/\.$/, ''))}.</p>` : ''}
+      <div class="dp-tags"><span class="center-status ${view ? view.cls : status}">${view ? view.label : cap(status)}</span>${c.biological ? `<span class="dp-tag">${esc(c.biological)}</span>` : ''}${c.motor ? '<span class="dp-tag">Motor</span>' : ''}</div>
+      ${transit ? transitViewNote(transit) : ''}
+      ${transitCallout}
       ${para(meaning)}
-      ${status !== 'defined' && c.notSelfQuestion ? `<p class="center-notself">${esc(c.notSelfQuestion)}</p>` : ''}
-      ${para(DEFINED_TEXT[status], 'dp-text dp-soft')}
+      ${!only && status !== 'defined' && c.notSelfQuestion ? `<p class="center-notself">${esc(c.notSelfQuestion)}</p>` : ''}
+      ${only ? '' : para(DEFINED_TEXT[status], 'dp-text dp-soft')}
       ${section('Gates here', `<div class="gate-chip-row">${gatesOfCenter(key).map(g =>
-        `<button type="button" class="gate-chip ${active.has(g) ? 'active' : ''}" data-gate="${g}" ${dt('gate', g)} aria-label="Gate ${g} ${esc(GATES[g]?.name || '')}${active.has(g) ? ', active' : ''}">${g}</button>`).join('')}</div>`)}
-      ${section('Channels through here', touching.map(ch =>
-        `<div class="dp-row">${channelLink(ch, definedKeys.has(channelKey(ch)) ? 'on' : '')}<span class="dp-row-note">${definedKeys.has(channelKey(ch)) ? 'defined' : ''}</span></div>`).join(''))}`
+        `<button type="button" class="gate-chip ${chipClass(g)}" data-gate="${g}" ${dt('gate', g)} aria-label="Gate ${g} ${esc(GATES[g]?.name || '')}${active.has(g) ? ', active' : ''}">${g}</button>`).join('')}</div>`)}
+      ${section('Channels through here', touching.map(ch => {
+        const on = channelsOn.has(channelKey(ch));
+        const note = !on ? '' : transit ? TRANSIT_SOURCE_LABELS[transit.model.channelSource(ch)] : 'defined';
+        return `<div class="dp-row">${channelLink(ch, on ? 'on' : '')}<span class="dp-row-note">${note}</span></div>`;
+      }).join(''))}`
   };
 }
 

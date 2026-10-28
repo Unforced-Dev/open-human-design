@@ -13,7 +13,7 @@ import { getCurrentChart } from './chart.js';
 import { dt, dl, channelKeyOf, conditioningOf } from '../lib/details.js';
 import { pairModel } from '../lib/pair.js';
 import { CONNECTION_TYPES } from '../lib/glossary.js';
-import { registerScope, openDetail, closeDetail } from '../detail-panel.js';
+import { registerScope, openDetail, closeDetail, refreshDetail } from '../detail-panel.js';
 
 let placeB = null;
 let pairCtx = null;  // { a, b, nameA, nameB, comparison, model } of the comparison on screen
@@ -28,7 +28,7 @@ let lastComparison = null;
 
 export function rerenderConnectionGraphs() {
   if (lastComparison && lastComparison[1] === getCurrentChart()) {
-    renderConnectionContent(...lastComparison);
+    renderConnectionContent(...lastComparison, { keepPanel: true });
   }
 }
 
@@ -117,11 +117,11 @@ function compositePalette() {
 
 const CHANNEL_BY_NAME = Object.fromEntries(CHANNELS.map(ch => [ch.name, ch]));
 
-function renderConnectionContent(comparison, a, b) {
+function renderConnectionContent(comparison, a, b, { keepPanel = false } = {}) {
   lastComparison = [comparison, a, b];
   const container = document.getElementById('connection-content');
   container.dataset.detailScope = 'pair';
-  closeDetail(); // a panel from the previous comparison would be stale
+  if (!keepPanel) closeDetail(); // a panel from the previous comparison would be stale
   const cc = comparison.connectionChart;
   const nameA = a.birth.name || 'You';
   const nameB = b.birth.name || 'Person B';
@@ -248,4 +248,5 @@ function renderConnectionContent(comparison, a, b) {
 
   renderBodygraph(container.querySelector('#conn-graph-a'), a.chart, { compact: true });
   renderBodygraph(container.querySelector('#conn-graph-b'), b.chart, { compact: true });
+  if (keepPanel) refreshDetail('pair'); // re-pin the open item on the new graph
 }

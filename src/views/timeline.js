@@ -14,10 +14,14 @@ registerScope('timeline', {
   context: () => {
     const current = getCurrentChart();
     return current && detailContext?.model && {
-      chart: current.chart, geneKeys: current.geneKeys, transitGates: detailContext.model.transitGates
+      chart: current.chart, geneKeys: current.geneKeys,
+      transit: { activations: detailContext.transitGates, model: detailContext.model }
     };
   },
-  onShow: (_entry, result) => detailContext?.api?.setPinned?.(result.pin || null),
+  onShow: (entry, result, body) => {
+    detailContext?.api?.setPinned?.(result.pin || null);
+    detailContext?.decorateDetail?.(body, entry); // the activation interval, when there is one
+  },
   onClose: () => { detailContext?.api?.setPinned?.(null); detailContext?.onDetailClose?.(); }
 });
 

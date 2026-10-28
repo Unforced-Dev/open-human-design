@@ -21,7 +21,8 @@ registerScope('transit', {
   context: () => {
     const current = getCurrentChart();
     return current && transitDetailContext && {
-      chart: current.chart, geneKeys: current.geneKeys, transitGates: transitDetailContext.model.transitGates
+      chart: current.chart, geneKeys: current.geneKeys,
+      transit: { activations: transitDetailContext.transitGates, model: transitDetailContext.model }
     };
   },
   onShow: (_entry, result) => transitDetailContext?.api?.setPinned?.(result.pin || null),
@@ -29,20 +30,17 @@ registerScope('transit', {
 });
 
 export function setupTransitView() {
-  document.getElementById('transits-view').addEventListener('click', event => {
-    const button = event.target.closest('[data-transit-detail]');
-    if (button && transitDetailContext) openDetail('transit', button.dataset.transitDetail, button.dataset.id, { trigger: button });
-
-  });
+  // List items carry data-detail; the panel opens them in the 'transit' scope.
+  document.getElementById('transit-content').dataset.detailScope = 'transit';
   const previewDetail = event => {
     if (event.pointerType === 'touch') return;
-    const button = event.target.closest('[data-transit-detail]');
+    const button = event.target.closest('#transit-content [data-detail]');
     if (!button) return;
-    const kind = button.dataset.transitDetail;
-    transitDetailContext?.api?.highlightSelection({ kind, id: kind === 'gate' ? Number(button.dataset.id) : button.dataset.id });
+    const [kind, id] = button.dataset.detail.split(':');
+    transitDetailContext?.api?.highlightSelection({ kind, id: kind === 'gate' ? Number(id) : id });
   };
   const clearPreview = event => {
-    const button = event.target.closest('[data-transit-detail]');
+    const button = event.target.closest('#transit-content [data-detail]');
     if (button && !button.contains(event.relatedTarget)) transitDetailContext?.api?.highlightSelection(null);
   };
   const view = document.getElementById('transits-view');

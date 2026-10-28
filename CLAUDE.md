@@ -37,16 +37,24 @@ src/
 ├── styles.css         # Full design system with dark mode
 ├── bodygraph.js       # SVG bodygraph: planet columns, striped dual activations, hover/click,
 │                      #   transit rings, reveal animation, traditional center colors
+├── detail-panel.js    # the one detail panel: data-detail="kind:id" in a [data-detail-scope]
+│                      #   opens in place (sheet <1024px, side panel ≥1024px), Back trail
+├── features/transit-timeline/  # the Timeline view (worker-backed activation windows)
 ├── lib/
 │   ├── chartdata.js   # computeChart + birth-time sensitivityCheck (±15min diff)
 │   ├── location.js    # re-exports natalengine timezone module (Open-Meteo + Intl IANA history)
 │   ├── people.js      # saved people, backed by natalengine profile storage (interop)
 │   ├── share.js       # birth data ↔ URL params (shareable chart links, ?view= deep links)
+│   ├── details.js     # pure panel renderers per scope (chart, pair, team); transit-aware
+│   ├── glossary.js    # original interpretive text used by the panel
+│   ├── pair.js        # two-chart model shared by the combined bodygraph and the panel
+│   ├── transit-graph.js # transit graph model (sources, channels, centers) for graph + panel
 │   └── format.js      # esc(), formatBirth()
 └── views/
     ├── entry.js       # birth form: place autocomplete, tz chip, manual-offset fallback
     ├── chart.js       # bodygraph + foundation + tabs (Centers/Channels/Gates/Planets/Variable/Cross)
     ├── transits.js    # transit overlay graph + completions
+    ├── timeline.js    # bridge from the Timeline feature to the app (chart, graph, panel)
     ├── connection.js  # two-person comparison (saved people or manual)
     └── team.js        # penta/group analysis
 
@@ -57,8 +65,8 @@ worker/
                        #   streamable HTTP — see docs/PLATFORM.md for the design
 ```
 
-Single-page app, 4 views. State lives in main.js (`currentData`); views read it via
-`chart.js#getCurrentChart()`.
+Single-page app, 5 views (chart, transits, timeline, connection, team). State lives in main.js
+(`currentData`); views read it via `chart.js#getCurrentChart()`.
 
 ## Key conventions
 

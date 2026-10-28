@@ -46,12 +46,12 @@ test('overlay retains center themes and every reinforced gate meaning with detai
   assert.ok(overlay.temporarilyDefinedCenters.length > 0);
   assert.ok(overlay.reinforcedGates.length > 0);
   for (const c of overlay.temporarilyDefinedCenters) {
-    assert.ok(html.includes(`data-transit-detail="center" data-id="${c.center}"`));
+    assert.ok(html.includes(`data-detail="center:${c.center}"`));
     assert.ok(html.includes(`${c.theme} — usually undefined in your chart, activated at the selected time by transit.`));
   }
   assert.ok(html.includes(`Reinforced Gates (${overlay.reinforcedGates.length})`));
   for (const g of overlay.reinforcedGates) {
-    assert.ok(html.includes(`data-transit-detail="gate" data-id="${g.gate}"`));
+    assert.ok(html.includes(`data-detail="gate:${g.gate}"`));
     assert.ok(html.includes(g.meaning.replace('today.', 'at the selected time.')));
   }
   assert.ok(html.includes('reinforces your natal gate'));
@@ -75,5 +75,5 @@ test('no completions retains quiet-sky synthesis and does not list existing nata
   assert.ok(html.includes('quiet sky for your chart'));
   assert.ok(html.includes('Channel Completions (0)'));
   assert.ok(html.includes('No channel completions from these transits.'));
-  assert.doesNotMatch(html, /data-transit-detail="channel"|Temporarily Defined Centers/);
+  assert.doesNotMatch(html, /data-detail="channel:|Temporarily Defined Centers/);
 });

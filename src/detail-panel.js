@@ -15,7 +15,7 @@
 import { renderDetail, setLens } from './lib/details.js';
 
 const WIDE = window.matchMedia('(min-width: 1024px)');
-const scopes = {};   // name -> { renderer?: 'chart'|'pair'|'team', context(), onShow?(entry, result), onClose?() }
+const scopes = {};   // name -> { renderer?: 'chart'|'pair'|'team', context(), onShow?(entry, result, body), onClose?() }
 let panel, backdrop, bodyEl, backBtn;
 let stack = [];      // [{ scope, kind, id }]
 let returnFocus = null;
@@ -48,7 +48,7 @@ function render({ keepScroll = false } = {}) {
     ${result.body}`;
   bodyEl.scrollTop = keepScroll ? scroll : 0;
   backBtn.hidden = stack.length < 2;
-  scope.onShow?.(entry, result);
+  scope.onShow?.(entry, result, bodyEl);
 }
 
 function setMode() {

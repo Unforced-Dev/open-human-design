@@ -165,15 +165,63 @@ const browser = await chromium.launch({ executablePath: CHROME, headless: true }
     const sun = await page.$eval('#transit-content [data-detail^="gate:"]', el => el.dataset.detail);
     await page.$eval('#transit-content [data-detail^="gate:"]', el => el.click());
     const body = await page.textContent('#detail-panel');
-    expect(/transiting planet sits in this gate/.test(body), `transit note missing for ${sun}`);
+    expect(/Transit Sun · \d+\.\d/.test(body) && /Birth activations/.test(body), `transit activations missing for ${sun}`);
+    expect(await page.$eval(`#transit-bodygraph .bg-gate-path[data-gate="${sun.split(':')[1]}"]`, el => el.classList.contains('bg-lit')),
+      'transit graph does not pin the open gate');
     await page.keyboard.press('Escape');
     // A temporarily defined center's panel must say the transit defines it.
     const temp = await page.$('#transit-content .center-card[data-detail]');
     if (temp) {
       await temp.click();
-      expect(/transits on the chosen date define it/.test(await page.textContent('#detail-panel')), 'temporarily defined center panel ignores the transit');
+      expect(/transits at the selected time define it/.test(await page.textContent('#detail-panel')), 'temporarily defined center panel ignores the transit');
       await page.keyboard.press('Escape');
     }
+    // Transit only: the panel drops the birth side, like the graph does.
+    await page.click('.transit-mode-switch input[value="transit-only"] + span');
+    await page.$eval('#transit-content [data-detail^="gate:"]', el => el.click());
+    const only = await page.textContent('#detail-panel');
+    expect(/Transit only/.test(only) && !/Birth activations/.test(only), 'transit-only panel still shows birth activations');
+    await page.keyboard.press('Escape');
+    await page.click('.transit-mode-switch input[value="overlay"] + span');
+  });
+
+  await check('800px: timeline — bars, row symbols and planets open the same sheet', async () => {
+    await page.$eval('.nav-link[data-view="timeline"]', el => el.click());
+    await page.waitForFunction(() => document.querySelector('#timeline-view .tl-table')?.getAttribute('aria-busy') === 'false', null, { timeout: 60000 });
+    // A transit bar opens its item with the interval's timing.
+    await page.$eval('#timeline-view .tl-bar[data-source="transit"]', el => el.click());
+    await page.waitForSelector('#detail-panel.open .tl-detail-timing');
+    let st = await panelState(page);
+    expect(st.mode === 'sheet' && st.modal === 'true' && st.backdrop && st.title, `expected modal sheet: ${JSON.stringify(st)}`);
+    expect(/Duration/.test(await page.textContent('#detail-panel .tl-detail-timing')), 'timing has no duration');
+    expect(await page.$('#timeline-view .tl-bar[aria-pressed="true"]'), 'the opened bar is not marked');
+    // Onward and Back keep the timeline context, timing included.
+    const first = st.title;
+    await page.$eval('#detail-panel .dp-body [data-detail]', el => el.click());
+    st = await panelState(page);
+    expect(st.back, `onward link: ${JSON.stringify(st)}`);
+    await page.click('#detail-panel .dp-back');
+    st = await panelState(page);
+    expect(st.title === first && await page.$('#detail-panel .tl-detail-timing'), 'Back lost the item or its timing');
+    await page.mouse.click(400, 40); // backdrop
+    expect(!(await panelState(page)).open, 'backdrop did not close the sheet');
+    expect(!(await page.$('#timeline-view .tl-bar[aria-pressed="true"]')), 'bar stayed marked after close');
+    // Every row symbol opens its center, channel or gate.
+    const rows = await page.$$eval('#timeline-view .tl-row-name', els => els.filter(el => el.offsetParent !== null).map(el => el.dataset.row));
+    expect(rows.length > 5, `only ${rows.length} timeline rows`);
+    for (const key of rows) {
+      await page.$eval(`#timeline-view .tl-row-name[data-row="${key}"]`, el => el.click());
+      st = await panelState(page);
+      expect(st.open && st.title, `timeline row ${key} did not open a panel`);
+      await page.keyboard.press('Escape');
+    }
+    // A transiting planet opens its gate with that planet listed.
+    const planet = await page.$eval('#timeline-view .tl-planet[data-planet="sun"]', el => el.dataset.gate);
+    await page.$eval('#timeline-view .tl-planet[data-planet="sun"]', el => el.click());
+    st = await panelState(page);
+    expect(st.label === `Gate ${planet}` && /Transit Sun/.test(await page.textContent('#detail-panel')), `sun planet → ${st.label}`);
+    await page.keyboard.press('Escape');
+    await page.$eval('.nav-link[data-view="chart"]', el => el.click());
   });
 
   await check('800px: connection — every item opens, combined chart too', async () => {
@@ -273,6 +321,23 @@ const browser = await chromium.launch({ executablePath: CHROME, headless: true }
     expect(!(await page.$('.modal-overlay')), 'edit dialog did not close');
     expect((await panelState(page)).open, 'Escape for the dialog also closed the detail panel');
     await page.keyboard.press('Escape');
+  });
+
+  await check('1280px: timeline opens the side panel beside the tracks', async () => {
+    await page.$eval('.nav-link[data-view="timeline"]', el => el.click());
+    await page.waitForFunction(() => document.querySelector('#timeline-view .tl-table')?.getAttribute('aria-busy') === 'false', null, { timeout: 60000 });
+    await page.$eval('#timeline-view .tl-bar[data-source="transit"]', el => el.click());
+    await page.waitForSelector('#detail-panel.open .tl-detail-timing');
+    const st = await panelState(page);
+    expect(st.mode === 'side' && st.modal === 'false' && !st.backdrop, `expected side panel: ${JSON.stringify(st)}`);
+    // Non-modal: another row opens in place, as a fresh item.
+    const key = await page.$eval('#timeline-view .tl-row-name', el => el.dataset.row);
+    await page.$eval(`#timeline-view .tl-row-name[data-row="${key}"]`, el => el.click());
+    const next = await panelState(page);
+    expect(next.open && !next.back, `row with panel open → ${JSON.stringify(next)}`);
+    await page.keyboard.press('Escape');
+    expect(!(await panelState(page)).open, 'Escape did not close the side panel');
+    await page.$eval('.nav-link[data-view="chart"]', el => el.click());
   });
 
   await check('1280px: theme toggle keeps the open item pinned on the new graph', async () => {
