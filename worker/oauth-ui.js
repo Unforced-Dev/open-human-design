@@ -123,13 +123,23 @@ const nothingToConnect = (detail = '') => PAGE('Connect', `<h1>Nothing to connec
         assistant sends you here. To connect yours, copy the connector URL from the app's
         Sync panel into your AI's connector settings.</p>${detail ? `<p class="muted">${esc(detail)}</p>` : ''}`);
 
+// Loopback redirects (desktop / CLI clients) can't hand a code to anyone remote.
+function isLoopback(redirectUri) {
+  try {
+    return ['localhost', '127.0.0.1', '[::1]'].includes(new URL(redirectUri).hostname);
+  } catch {
+    return false;
+  }
+}
+
 function consentPage(clientName, email, qs, redirectUri, scopes) {
   const host = redirectLabel(redirectUri);
-  const known = KNOWN_CLIENT_HOSTS.has(host);
+  const local = isLoopback(redirectUri);
+  const known = local || KNOWN_CLIENT_HOSTS.has(host);
   return PAGE('Connect', `
     <h1>Connect “${esc(clientName)}”?</h1>
     <p>Signed in as <strong>${esc(email)}</strong>. Connecting sends access to:</p>
-    <div class="host" id="redirect-host">${esc(host)}</div>
+    <div class="host" id="redirect-host">${esc(host)}</div>${local ? '<p class="muted">An app on this computer.</p>' : ''}
     ${known ? '' : `<p class="warn"><strong>Check this address.</strong> The name above is chosen by the app itself and is not verified. Only connect if you started this from your AI assistant and recognise <strong>${esc(host)}</strong>.</p>`}
     <p>It will be able to:</p>
     <div class="scopes"><ul>
