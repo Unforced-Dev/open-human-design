@@ -18,6 +18,7 @@ import { setupConnectionView, renderConnectionView, compareWithGuest, rerenderCo
 import { setupTeamView, renderTeamView } from './views/team.js';
 import { setupTimelineView } from './views/timeline.js';
 import { initDetailPanel, closeDetail } from './detail-panel.js';
+import { nameToSave } from './lib/starthere.js';
 
 // ==========================================
 // State
@@ -230,7 +231,8 @@ function loadBirth(birth, { save = false } = {}) {
   renderChartView(currentData, {
     // No optional chaining — a missing clipboard API must reject so the
     // button reports failure honestly instead of "copied".
-    onShare: () => navigator.clipboard.writeText(shareUrl(resolved))
+    onShare: () => navigator.clipboard.writeText(shareUrl(resolved)),
+    onRename: () => openEditPerson(resolved)
   });
   renderPeopleSwitcher();
   showView('chart');
@@ -355,7 +357,10 @@ function init() {
 
   entryApi = setupEntryView({
     onSubmit: (birth, { savedPerson = false } = {}) => {
-      loadBirth(birth, { save: !savedPerson && !!birth.name });
+      let savedCount = 0;
+      try { savedCount = listPeople().length; } catch { /* storage unavailable */ }
+      const name = savedPerson ? null : nameToSave(birth.name, savedCount);
+      loadBirth(name ? { ...birth, name } : birth, { save: !!name });
       if (pendingCompare) {
         pendingCompare = false;
         document.getElementById('entry-invite')?.classList.add('hidden');

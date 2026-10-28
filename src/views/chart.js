@@ -23,6 +23,7 @@ import { esc, formatBirth } from '../lib/format.js';
 import { birthToParams, connectionUrl } from '../lib/share.js';
 import { dt } from '../lib/details.js';
 import { registerScope, openDetail, refreshDetail } from '../detail-panel.js';
+import { startSteps, FIRST_CHART_NAME } from '../lib/starthere.js';
 
 let current = null; // { birth, chart, geneKeys }
 let bodygraphApi = null;
@@ -61,7 +62,7 @@ const TYPE_PLAIN = {
   'Reflector': 'You mirror the health of your community. Take a full lunar cycle (~28 days) before big decisions and choose your environments carefully.'
 };
 
-export function renderChartView(data, { onShare } = {}) {
+export function renderChartView(data, { onShare, onRename } = {}) {
   current = data;
   const { birth, chart } = data;
 
@@ -79,6 +80,7 @@ export function renderChartView(data, { onShare } = {}) {
   banner.dataset.detailScope = 'chart';
   banner.innerHTML = `
     <div class="type-name">${who.replace(' — ', '')}</div>
+    ${birth.id && birth.name === FIRST_CHART_NAME && onRename ? '<button type="button" id="rename-chart" class="link-button banner-rename">Add your name</button>' : ''}
     <div><button type="button" class="type-badge" ${dt('type', chart.type.name)}>${esc(chart.type.name)}</button></div>
     <div class="type-detail">
       <button type="button" class="banner-link" ${dt('profile', chart.profile.numbers)}>${esc(chart.profile.numbers)} ${esc(chart.profile.name)}</button>
@@ -96,6 +98,9 @@ export function renderChartView(data, { onShare } = {}) {
       <button id="invite-compare" class="btn-secondary btn-small">Invite to compare</button>
     </div>
   `;
+  document.getElementById('rename-chart')?.addEventListener('click', () => onRename());
+  renderStartHere(chart);
+
   document.getElementById('share-chart').addEventListener('click', async (e) => {
     if (!onShare) return;
     try {
@@ -155,6 +160,53 @@ export function renderChartView(data, { onShare } = {}) {
   renderPanelContent(activeTab ? activeTab.dataset.panel : 'centers');
 
 }
+
+// ==========================================
+// Start here — three first steps, each opening the detail panel
+// ==========================================
+const START_KEY = 'ohd-start-here';
+const startHidden = () => { try { return localStorage.getItem(START_KEY) === 'hidden'; } catch { return false; } };
+
+function renderStartHere(chart) {
+  const card = document.getElementById('start-here');
+  if (startHidden()) { card.hidden = true; card.innerHTML = ''; return; }
+  card.hidden = false;
+  card.dataset.detailScope = 'chart';
+  card.innerHTML = `
+    <div class="start-head">
+      <h2 class="start-title" id="start-title">Start here</h2>
+      <button type="button" class="start-dismiss" aria-label="Hide Start here">Got it</button>
+    </div>
+    <ol class="start-steps" aria-labelledby="start-title">
+      ${startSteps(chart).map((step, i) => `
+        <li><button type="button" class="start-step" data-detail="${esc(step.kind)}:${esc(step.id)}">
+          <span class="start-num" aria-hidden="true">${i + 1}</span>
+          <span class="start-body">
+            <span class="start-label">${esc(step.label)} · <strong>${esc(step.value)}</strong></span>
+            <span class="start-line">${esc(step.line)}</span>
+          </span>
+          <span class="start-arrow" aria-hidden="true">›</span>
+        </button></li>`).join('')}
+    </ol>`;
+  card.querySelector('.start-dismiss').addEventListener('click', () => {
+    try { localStorage.setItem(START_KEY, 'hidden'); } catch { /* private mode: hide for now */ }
+    card.hidden = true;
+    document.querySelector('#type-banner .type-strategy')?.focus({ preventScroll: true });
+  });
+}
+
+// Phones: the Foundation moves up, between Start here and the bodygraph, so
+// the reading comes before the long scroll past the graph. Moving the node
+// (not CSS order) keeps reading and focus order the same as what's on screen.
+const PHONE = window.matchMedia('(max-width: 640px)');
+function placeFoundation() {
+  const panel = document.getElementById('foundation-panel');
+  const layout = document.querySelector('#chart-view .chart-layout');
+  if (PHONE.matches) layout.prepend(panel);
+  else document.querySelector('#chart-view .info-column').prepend(panel);
+}
+placeFoundation();
+PHONE.addEventListener('change', placeFoundation);
 
 export function rerenderBodygraph(transitGates = null) {
   if (!current) return;
@@ -217,8 +269,7 @@ function renderFoundation(chart, sensitivity = null, birth = null) {
   }
   if (sensitivity && !birth?.timeUnknown) {
     const solid = sensitivity.shifts.length === 0;
-    // Lead with reassurance and what to do — never alarm. (A founder-flagged
-    // copy fix: the old wording read as a warning about the chart itself.)
+    // Say plainly what could change and what holds; never alarm.
     reliabilityHtml = solid
       ? `
       <div class="reliability reliability-solid">
@@ -228,9 +279,8 @@ function renderFoundation(chart, sensitivity = null, birth = null) {
       : `
       <div class="reliability reliability-soft">
         <span class="reliability-dot"></span>
-        <span>Your chart is solid. One fine detail — your <strong>${esc(humanList(sensitivity.shifts))}</strong> —
-        sits right on a line, so it's the only thing a birth time off by 15+ minutes could nudge.
-        Everything else holds no matter what. If your time came from a birth certificate, even that is settled.</span>
+        <span>If your birth time is off by 15 minutes or more, your <strong>${esc(humanList(sensitivity.shifts))}</strong>
+        could change. The rest of your foundation stays the same. A time from a birth certificate is usually close enough.</span>
       </div>`;
   }
   const crossName = chart.incarnationCross?.fullName || chart.incarnationCross?.name || 'Unknown';

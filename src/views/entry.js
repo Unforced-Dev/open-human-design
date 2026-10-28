@@ -32,6 +32,10 @@ export function setupEntryView({ onSubmit }) {
   function renderQuickPick() {
     const wrap = document.getElementById('saved-people');
     const people = listPeople();
+    // The first chart is kept even without a name (as "Me"); after that a
+    // name is what saves a chart.
+    document.getElementById('birth-name-hint').textContent = people.length ? '(optional, to save)' : '(optional)';
+    nameInput.placeholder = people.length ? 'Name' : 'Your name';
     if (!people.length) { wrap.innerHTML = ''; return; }
     wrap.innerHTML = `
       <div class="saved-people-label">Saved charts</div>

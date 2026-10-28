@@ -139,3 +139,35 @@ export const CONNECTION_TYPES = {
 };
 
 export const PENTA_TEXT = 'A Penta is the small-group form of a team, three to five people. Each defined center someone brings fills a role the group needs; roles nobody fills show where the group leans on outside help.';
+
+// "Start here" card: one practical line per strategy, authority and
+// not-defined center. Keyed like TYPE_GUIDANCE / AUTHORITY_TEXT / CENTERS.
+export const STRATEGY_PRACTICE = {
+  manifestor: 'Before you act, tell the people it will affect. It clears the way.',
+  generator: 'Let life bring you something first, then notice your gut\'s yes or no before you commit.',
+  manifestingGenerator: 'Respond first, then tell people before you move fast.',
+  projector: 'Wait to be recognised and invited into the big things: work, love, where you live.',
+  reflector: 'Give big decisions about a month, and notice how places and people feel.'
+};
+
+export const AUTHORITY_PRACTICE = {
+  'Emotional Authority': 'Next decision: don\'t answer on a high or a low. Sleep on it and see what still feels right once you\'re calm.',
+  'Sacral Authority': 'Next decision: have someone ask you yes-or-no questions, and trust the sound or pull in your body before your mind joins in.',
+  'Splenic Authority': 'Next decision: catch the first quiet hunch. It speaks once, in the moment, before your mind argues.',
+  'Ego/Heart Authority': 'Next decision: ask whether you truly want it and will put your heart into it. If not, it can wait.',
+  'Self-Projected Authority': 'Next decision: talk it through out loud with someone you trust, and listen to what you hear yourself say.',
+  'Mental/Environment': 'Next decision: talk it over with people you trust, somewhere that feels right, and notice what becomes clear.',
+  'Lunar Authority': 'Next decision: give it about a month, talk it over along the way, and see what stays the same.'
+};
+
+export const CENTER_NOTICE = {
+  head: 'Notice when other people\'s questions start to feel like puzzles you have to solve.',
+  ajna: 'Notice the urge to sound certain. Not holding one fixed view is a strength here.',
+  throat: 'Notice the pressure to speak up to be seen. Your words land best when the moment asks for them.',
+  g: 'Notice how places and people shape your sense of direction. The right place matters more than a fixed plan.',
+  heart: 'Notice promises made to prove yourself. You don\'t have to earn your worth.',
+  spleen: 'Notice holding on to people, habits or places because letting go feels unsafe.',
+  solar: 'Notice when you are feeling other people\'s moods, and how often you dodge friction to keep the peace.',
+  sacral: 'Notice when enough is enough. You can borrow others\' energy, but you can\'t keep their pace forever.',
+  root: 'Notice the rush to finish things just to make the pressure stop.'
+};
