@@ -2356,3 +2356,16 @@ body.dp-lock { overflow: hidden; }
   margin-bottom: 4px;
 }
 .detail-name { color: var(--text); line-height: 1.2; margin-bottom: 10px; }
+
+/* Links onward that live in running text or headings keep their own look. */
+.dlink.inline-link, .dlink.conn-type-link {
+  display: inline;
+  min-height: 0;
+  padding: 2px 0;
+  border: none;
+  border-radius: 0;
+  background: none;
+}
+.dlink.conn-type-link { padding: 0; color: var(--text-tertiary); font-size: 11px; margin-bottom: 0; }
+.dlink.conn-type-link:hover { color: var(--accent); }
+.dlink.pill { border-radius: 999px; background: var(--bg-elevated); min-height: 36px; }
