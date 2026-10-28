@@ -73,8 +73,8 @@ test('historical offsets retain seconds in conversion and display', () => {
 });
 
 test('both transit APIs match direct astronomy at the selected minute in any host timezone', () => {
-  // NatalEngine 1.6 computes at minute precision and truncates float minutes
-  // (e.g. 9.01666… h becomes 09:00), so use :00 and :30, which are exact in binary.
+  // NatalEngine 1.6.1 solves in UT milliseconds; the hour-float and Date paths differ by ~1e-8° for planets
+  // and ~5e-6° (0.02″) for the 1900 true node, far under a tone (~94″), so compare to 1e-5°. :00 and :30 keep both paths exact.
   // Include host DST boundaries and year rollover; run with several host TZ values.
   for (const iso of ['1900-01-01T12:00:00Z', '2026-09-23T06:30:00Z', '2026-03-08T10:00:00Z', '2026-11-01T09:30:00Z', '2027-01-01T00:00:00Z']) {
     const instant = Date.parse(iso);
@@ -84,7 +84,7 @@ test('both transit APIs match direct astronomy at the selected minute in any hos
     const args = engineTransitArguments(instant);
     const gates = calculateTransitGates(...args).gates;
     for (const planet of ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto', 'northNode']) {
-      assert.ok(Math.abs(gates[planet].longitude - expected[planet].longitude) < 1e-8, `${iso}: ${planet}`);
+      assert.ok(Math.abs(gates[planet].longitude - expected[planet].longitude) < 1e-5, `${iso}: ${planet}`);
     }
     assert.deepEqual(calculateHDTransits({}, ...args).transitGates, gates);
   }
