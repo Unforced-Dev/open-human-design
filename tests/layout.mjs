@@ -220,7 +220,9 @@ for (const theme of THEMES) {
       }
       if (SHOT_DIR && w === SHOT_WIDTH) {
         mkdirSync(SHOT_DIR, { recursive: true });
-        await page.screenshot({ path: `${SHOT_DIR}/${theme}-${name}.png`, fullPage: true });
+        // Fixed sheets and dialogs only make sense in the viewport they cover.
+        const overlay = await page.$('#detail-panel.open, .modal-overlay');
+        await page.screenshot({ path: `${SHOT_DIR}/${theme}-${name}.png`, fullPage: !overlay });
       }
     }
     await ctx.close();
