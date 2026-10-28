@@ -26,6 +26,9 @@ async function check(name, fn) {
 const browser = await chromium.launch({ executablePath: CHROME, headless: true });
 const page = await browser.newPage({ viewport: { width: 1380, height: 1000 } });
 page.on('pageerror', err => fail('page JS error', err.message));
+// Served by the Worker (npx wrangler dev), the app runs under its CSP: any
+// blocked script, style, font or fetch shows up here.
+page.on('console', msg => { if (/Content Security Policy/i.test(msg.text())) fail('CSP violation', msg.text()); });
 
 // --- Entry flow with live geocoding ---
 await page.goto(BASE);
@@ -317,26 +320,30 @@ await check('shared person retained for comparison (P1-11)', async () => {
 });
 
 // --- Dyad: a "compare with me" invite walks the recipient to the comparison ---
-await check('connection invite auto-runs the comparison (dyad loop)', async () => {
-  const ctx = await browser.newContext();
-  const p3 = await ctx.newPage();
-  p3.on('pageerror', err => fail('dyad page JS error', err.message));
-  await p3.goto(`${BASE}?d=1975-12-01&t=06:30&tz=-5&n=Inviter&connect=1`);
-  await p3.waitForSelector('#entry-invite:not(.hidden)', { timeout: 5000 });
-  const cta = await p3.textContent('#entry-invite');
-  if (!/Inviter/.test(cta)) throw new Error('invite banner missing: ' + cta);
-  await p3.fill('#birth-name', 'Recipient');
-  await p3.fill('#birth-date', '1990-06-15');
-  await p3.fill('#birth-time', '14:30');
-  await p3.fill('#birth-place', 'Boulder');
-  await p3.waitForSelector('.place-result', { timeout: 8000 });
-  await p3.click('.place-result:first-child');
-  await p3.click('#birth-form button[type=submit]');
-  await p3.waitForSelector('#connection-content .foundation-item', { timeout: 6000 });
-  const content = await p3.textContent('#connection-content');
-  if (!/How you decide together/.test(content)) throw new Error('comparison not shown: ' + content.slice(0, 120));
-  await ctx.close();
-});
+// Name is optional on the form, so run it both ways: a blank name used to drop
+// the guest (both ids undefined → "same person") and show nothing.
+for (const recipient of ['Recipient', '']) {
+  await check(`connection invite auto-runs the comparison (dyad loop, name ${recipient ? 'given' : 'blank'})`, async () => {
+    const ctx = await browser.newContext();
+    const p3 = await ctx.newPage();
+    p3.on('pageerror', err => fail('dyad page JS error', err.message));
+    await p3.goto(`${BASE}?d=1975-12-01&t=06:30&tz=-5&n=Inviter&connect=1`);
+    await p3.waitForSelector('#entry-invite:not(.hidden)', { timeout: 5000 });
+    const cta = await p3.textContent('#entry-invite');
+    if (!/Inviter/.test(cta)) throw new Error('invite banner missing: ' + cta);
+    if (recipient) await p3.fill('#birth-name', recipient);
+    await p3.fill('#birth-date', '1990-06-15');
+    await p3.fill('#birth-time', '14:30');
+    await p3.fill('#birth-place', 'Boulder');
+    await p3.waitForSelector('.place-result', { timeout: 8000 });
+    await p3.click('.place-result:first-child');
+    await p3.click('#birth-form button[type=submit]');
+    await p3.waitForSelector('#connection-content .foundation-item', { timeout: 6000 });
+    const content = await p3.textContent('#connection-content');
+    if (!/How you decide together/.test(content)) throw new Error('comparison not shown: ' + content.slice(0, 120));
+    await ctx.close();
+  });
+}
 
 await browser.close();
 

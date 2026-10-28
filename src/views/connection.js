@@ -54,7 +54,8 @@ export function renderConnectionView() {
     .join('');
   // A chart they arrived at via a share link stays comparable (P1-11).
   const guest = getSharedGuest();
-  const guestOpt = guest?.name && guest?.birthDate && guest.id !== current?.birth?.id
+  // Ids are compared only when both exist: an unsaved (nameless) chart has none.
+  const guestOpt = guest?.name && guest?.birthDate && !(guest.id && guest.id === current?.birth?.id)
     ? `<option value="__guest">${esc(guest.name)} (shared chart)</option>` : '';
   select.innerHTML = `<option value="">— enter birth data below —</option>${guestOpt}${options}`;
   select.onchange = () => {
