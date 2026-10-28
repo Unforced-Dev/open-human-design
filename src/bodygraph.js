@@ -14,6 +14,7 @@
 
 import { GATE_PATHS, CENTER_SHAPES, GATE_CIRCLE_POSITIONS } from 'natalengine/bodygraph-data';
 import { GATES, CHANNELS } from 'natalengine';
+import { esc } from './lib/format.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -486,8 +487,8 @@ export function renderBodygraph(container, chart, opts = {}) {
       if (composite) {
         const o = centerOwner(centerKey);
         const txt = o === 'both' ? 'Both of you define this'
-          : o === 'a' ? `${composite.labelA} defines this`
-          : o === 'b' ? `${composite.labelB} defines this`
+          : o === 'a' ? `${esc(composite.labelA)} defines this`
+          : o === 'b' ? `${esc(composite.labelB)} defines this`
           : o === 'bridged' ? 'Defined together — neither of you has it alone'
           : 'Open between you';
         return `<strong>${dn} Center</strong><div class="bg-tt-channel">${txt}</div>`;
@@ -502,8 +503,8 @@ export function renderBodygraph(container, chart, opts = {}) {
     function compositeGateTooltip(g) {
       const gate = GATES[g];
       const o = gateOwner(g);
-      const who = o === 'both' ? `${composite.labelA} + ${composite.labelB}`
-        : o === 'a' ? composite.labelA : o === 'b' ? composite.labelB : 'Neither of you';
+      const who = o === 'both' ? `${esc(composite.labelA)} + ${esc(composite.labelB)}`
+        : o === 'a' ? esc(composite.labelA) : o === 'b' ? esc(composite.labelB) : 'Neither of you';
       const dyn = (GATE_CHANNELS[g] || [])
         .map(ch => { const d = channelDynamic(ch); return d ? `${d} · ${ch.name} (${ch.gates.join('-')})` : null; })
         .filter(Boolean);
