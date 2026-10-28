@@ -10,28 +10,37 @@ import { transitInstants, engineTransitArguments, formatTransitOffset } from '..
 import { buildTransitGraph } from '../lib/transit-graph.js';
 import { renderTransitLegend, renderTransitSummary, highlightTransitRows } from './transit-presentation.js';
 
-import { getCurrentChart, showTransitDetail } from './chart.js';
+import { registerScope, openDetail, closeDetail, refreshDetail } from '../detail-panel.js';
+import { getCurrentChart } from './chart.js';
 
-let transitDetailContext = null;
+let transitDetailContext = null; // { transitGates, mode, model, api } of the graph on screen
+
+// Same renderers as the chart, told which gates the sky lights at the chosen time.
+registerScope('transit', {
+  renderer: 'chart',
+  context: () => {
+    const current = getCurrentChart();
+    return current && transitDetailContext && {
+      chart: current.chart, geneKeys: current.geneKeys,
+      transit: { activations: transitDetailContext.transitGates, model: transitDetailContext.model }
+    };
+  },
+  onShow: (_entry, result) => transitDetailContext?.api?.setPinned?.(result.pin || null),
+  onClose: () => transitDetailContext?.api?.setPinned?.(null)
+});
 
 export function setupTransitView() {
-  document.getElementById('transits-view').addEventListener('click', event => {
-    const button = event.target.closest('[data-transit-detail]');
-    if (button && transitDetailContext) {
-      const kind = button.dataset.transitDetail;
-      showTransitDetail(kind, kind === 'gate' ? Number(button.dataset.id) : button.dataset.id, transitDetailContext);
-    }
-
-  });
+  // List items carry data-detail; the panel opens them in the 'transit' scope.
+  document.getElementById('transit-content').dataset.detailScope = 'transit';
   const previewDetail = event => {
     if (event.pointerType === 'touch') return;
-    const button = event.target.closest('[data-transit-detail]');
+    const button = event.target.closest('#transit-content [data-detail]');
     if (!button) return;
-    const kind = button.dataset.transitDetail;
-    transitDetailContext?.api?.highlightSelection({ kind, id: kind === 'gate' ? Number(button.dataset.id) : button.dataset.id });
+    const [kind, id] = button.dataset.detail.split(':');
+    transitDetailContext?.api?.highlightSelection({ kind, id: kind === 'gate' ? Number(id) : id });
   };
   const clearPreview = event => {
-    const button = event.target.closest('[data-transit-detail]');
+    const button = event.target.closest('#transit-content [data-detail]');
     if (button && !button.contains(event.relatedTarget)) transitDetailContext?.api?.highlightSelection(null);
   };
   const view = document.getElementById('transits-view');
@@ -96,6 +105,7 @@ export function renderTransits() {
     choiceLabel.hidden = true;
     document.getElementById('transit-bodygraph').replaceChildren();
     document.getElementById('transit-content').replaceChildren();
+    closeDetail(); // nothing on screen for an open item to belong to
     return;
   }
 
@@ -126,13 +136,14 @@ export function renderTransits() {
       animate: false,
       transitGates,
       transitModel: model,
-      onGateClick: gate => showTransitDetail('gate', gate, context),
-      onCenterClick: center => showTransitDetail('center', center, context),
+      onGateClick: gate => openDetail('transit', 'gate', gate),
+      onCenterClick: center => openDetail('transit', 'center', center),
       onHighlight: highlightTransitRows
     });
   }
 
   renderTransitContent(overlay, date, time);
+  refreshDetail('transit'); // an open panel follows the new time
 }
 
 export function renderTransitContent(overlay, date = null) {

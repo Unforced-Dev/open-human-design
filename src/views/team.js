@@ -9,6 +9,11 @@ import { listPeople, birthFromPerson } from '../lib/people.js';
 import { createPlaceSearch } from '../lib/placesearch.js';
 import { esc } from '../lib/format.js';
 import { getCurrentChart } from './chart.js';
+import { dt, dl, centerName, channelKeyOf } from '../lib/details.js';
+import { registerScope, closeDetail } from '../detail-panel.js';
+
+let teamCtx = null; // { result, charts, names } of the analysis on screen
+registerScope('team', { context: () => teamCtx });
 
 export function setupTeamView() {
   document.getElementById('add-member').addEventListener('click', addMemberRow);
@@ -93,26 +98,45 @@ function runTeamAnalysis() {
   });
 
   if (charts.length < 2) {
+    closeDetail();
     document.getElementById('team-content').innerHTML =
       '<p class="panel-intro">Add at least two people to analyze the group.</p>';
     return;
   }
 
+  // Panels link people by name, so two "Alex"es must not collide.
+  const seen = new Set();
+  for (let i = 0; i < names.length; i++) {
+    let name = names[i];
+    for (let n = 2; seen.has(name); n++) name = `${names[i]} (${n})`;
+    seen.add(name);
+    names[i] = name;
+  }
+
+  closeDetail();
   const result = analyzePenta(charts, names);
+  teamCtx = { result, charts, names };
   renderTeamContent(result);
 }
 
 function renderTeamContent(result) {
   const container = document.getElementById('team-content');
+  container.dataset.detailScope = 'team';
+
+  const membersHtml = result.members.map((m, i) => `
+    <div class="member-card" ${dt('member', i)}>
+      <div class="member-name">${esc(m.name)}</div>
+      <div class="member-meta">${esc(m.type)} · ${esc(m.profile)} · ${esc(m.authority)}</div>
+    </div>`).join('');
 
   const rolesHtml = [...result.filledRoles.map(r => `
-    <div class="role-card filled">
+    <div class="role-card filled" ${dt('role', r.center)}>
       <div class="role-name">${esc(r.role)}</div>
       <div class="role-detail">${esc(r.description)}</div>
       <div class="role-detail" style="margin-top:4px"><strong>Filled by:</strong> ${r.contributors.map(esc).join(', ')}</div>
     </div>
   `), ...result.missingRoles.map(r => `
-    <div class="role-card missing">
+    <div class="role-card missing" ${dt('role', r.center)}>
       <div class="role-name">${esc(r.role)} — Missing</div>
       <div class="role-detail">${esc(r.suggestion)}</div>
     </div>
@@ -125,9 +149,11 @@ function renderTeamContent(result) {
     </div>
   `).join('');
 
+  const shared = (result.sharedGates || []).slice(0, 12);
+
   container.innerHTML = `
     <div class="foundation-grid" style="margin-bottom:20px">
-      <div class="foundation-item">
+      <div class="foundation-item foundation-clickable" ${dt('grouptype', '-')}>
         <div class="label">Group Type</div>
         <div class="value">${esc(result.groupType)}</div>
         <div class="detail">${esc(result.groupCareerType)}</div>
@@ -139,20 +165,34 @@ function renderTeamContent(result) {
       </div>
     </div>
 
-    <div class="panel-title">Team Roles</div>
+    <div class="panel-title">Members</div>
+    <div class="member-grid">${membersHtml}</div>
+
+    <div class="panel-title" style="margin-top:16px">Team Roles</div>
+    <p class="panel-intro">Each defined center someone brings fills a role. Tap a role to see who fills it and why.</p>
     ${rolesHtml}
 
     ${result.electromagnetics.length > 0 ? `
       <div style="margin-top:16px">
         <div class="panel-title">Electromagnetic Connections (${result.electromagnetics.length})</div>
         ${result.electromagnetics.slice(0, 10).map(e => `
-          <div class="connection-type" style="border-left:3px solid var(--electromagnetic)">
-            <div class="conn-channel">${esc(e.channel)}</div>
+          <div class="connection-type" style="border-left:3px solid var(--electromagnetic)" ${dt('teamchannel', channelKeyOf(e.gates))}>
+            <div class="conn-channel">${esc(e.channel)} <span class="conn-gates">(${e.gates.join('–')})</span></div>
             <div class="conn-desc">${esc(e.personA)} + ${esc(e.personB)} — ${esc(e.theme)}</div>
           </div>
         `).join('')}
       </div>
     ` : ''}
+
+    ${shared.length ? `
+      <div style="margin-top:16px">
+        <div class="panel-title">Shared Gates</div>
+        <p class="panel-intro">Gates more than one of you carry — common themes the group resonates on.</p>
+        <div class="pills">${shared.map(g => dl('teamgate', g.gate, `${g.gate} · ${esc(g.name)} <span class="dl-sub">${g.sharedBy}</span>`, 'pill')).join('')}</div>
+      </div>` : ''}
+
+    ${result.undefinedForAll?.length ? `
+      <p class="conn-note" style="margin-top:12px"><strong>Open for everyone:</strong> ${result.undefinedForAll.map(k => dl('teamcenter', k, esc(centerName(k)), 'inline-link')).join(', ')} — the group takes this in from outside.</p>` : ''}
 
     <div style="margin-top:16px">
       <div class="panel-title">Recommendations</div>

@@ -22,8 +22,8 @@ export function renderTransitLegend(mode) {
 export function highlightTransitRows(selection) {
   const gates = new Set(selection?.gates || []);
   const centers = new Set(selection?.centers || []);
-  document.querySelectorAll('#transit-content [data-transit-detail]').forEach(row => {
-    const { transitDetail: kind, id } = row.dataset;
+  document.querySelectorAll('#transit-content [data-detail]').forEach(row => {
+    const [kind, id] = row.dataset.detail.split(':');
     const lit = kind === 'gate' ? gates.has(Number(id))
       : kind === 'center' ? centers.has(id)
       : kind === 'channel' && id.split('-').every(gate => gates.has(Number(gate)));
@@ -49,11 +49,11 @@ export function renderTransitSummary(overlay, model) {
   document.getElementById('transit-content').innerHTML = `
     ${synthesis ? `<p class="panel-intro" style="font-size:14px">${synthesis}</p>` : ''}
     <div class="foundation-grid" style="margin-bottom:20px">
-      ${[['Sun', overlay.highlights.sun], ['Moon', overlay.highlights.moon]].map(([name, g]) => `<button type="button" class="foundation-item foundation-clickable transit-summary-button" data-transit-detail="gate" data-id="${g.gate}"><span class="label">Transit ${name}</span><span class="value">Gate ${g.gate} · Line ${g.line}</span><span class="detail">${esc(g.gateName)}${!only && g.reinforcesNatal ? ' — reinforces your natal gate' : ''}</span></button>`).join('')}
+      ${[['Sun', overlay.highlights.sun], ['Moon', overlay.highlights.moon]].map(([name, g]) => `<button type="button" class="foundation-item foundation-clickable transit-summary-button" data-detail="gate:${g.gate}"><span class="label">Transit ${name}</span><span class="value">Gate ${g.gate} · Line ${g.line}</span><span class="detail">${esc(g.gateName)}${!only && g.reinforcesNatal ? ' — reinforces your natal gate' : ''}</span></button>`).join('')}
     </div>
     <div class="panel-title">${only ? 'Transit channels' : 'Channel Completions'} (${channels.length})</div>
     <p class="panel-intro">${only ? 'Both gates are activated by the selected transits.' : 'When a transit gate sits opposite one of your hanging gates, the channel completes — you temporarily live that defined energy.'}</p>
-    ${channels.length ? channels.map(ch => `<button type="button" class="channel-item transit-completion transit-summary-button ${esc(ch.significance)}" data-transit-detail="channel" data-id="${ch.gates.join('-')}">
+    ${channels.length ? channels.map(ch => `<button type="button" class="channel-item transit-completion transit-summary-button ${esc(ch.significance)}" data-detail="channel:${ch.gates.join('-')}">
       <span class="completion-title">${esc(ch.channel)} (${ch.gates.join('-')})${ch.natalGate ? '<span class="circuit-badge transit-source-badge completed">Completed by transit</span>' : ''}</span>
       <span class="completion-detail">${ch.natalGate
         ? `Your Gate ${ch.natalGate} is completed by transit Gate ${ch.transitGate} (${esc(ch.transitPlanet)}).`
@@ -62,12 +62,12 @@ export function renderTransitSummary(overlay, model) {
       </span>
     </button>`).join('') : `<p class="panel-intro">${only ? 'No complete channels at this time.' : 'No channel completions from these transits.'}</p>`}
     ${centers.length ? `<div class="panel-title" style="margin-top:20px">${only ? 'Transit-defined centers' : 'Temporarily Defined Centers'} (${centers.length})</div>
-      ${centers.map(c => `<button type="button" class="center-card defined transit-summary-button" data-transit-detail="center" data-id="${c.center}">
+      ${centers.map(c => `<button type="button" class="center-card defined transit-summary-button" data-detail="center:${c.center}">
         <span class="center-name">${esc(c.centerName)}</span>
         <span class="center-detail">${esc(c.theme)} — ${only ? 'defined by a complete channel in the selected transits.' : 'usually undefined in your chart, activated at the selected time by transit.'}</span>
       </button>`).join('')}` : ''}
     ${!only && overlay.reinforcedGates.length ? `<div class="panel-title" style="margin-top:20px">Reinforced Gates (${overlay.reinforcedGates.length})</div>
-      ${overlay.reinforcedGates.map(g => `<button type="button" class="gate-item transit-summary-button" data-transit-detail="gate" data-id="${g.gate}">
+      ${overlay.reinforcedGates.map(g => `<button type="button" class="gate-item transit-summary-button" data-detail="gate:${g.gate}">
         <span class="gate-name">Gate ${g.gate}: ${esc(g.gateName)}</span>
         <span class="gate-meta">${esc(g.meaning.replace(/today\.$/, 'at the selected time.'))}</span>
       </button>`).join('')}` : ''}`;

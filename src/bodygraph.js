@@ -17,6 +17,7 @@ import { GATES, CHANNELS } from 'natalengine';
 import { esc } from './lib/format.js';
 import { TRANSIT_SOURCE_LABELS } from './lib/transit-graph.js';
 import { INTEGRATION_SPAN, INTEGRATION_JOINED_PATHS, INTEGRATION_LOWER_BEND_PATHS, integrationSpanGates } from './lib/bodygraph-integration.js';
+import { pairModel } from './lib/pair.js';
 
 let graphSequence = 0;
 
@@ -35,24 +36,8 @@ const svgEl = (tag, attrs) => el(tag, attrs, SVG_NS);
 
 const isDark = () => document.documentElement.getAttribute('data-theme') === 'dark';
 
-// Canonical HD planet-column order (Nodes before Moon) and glyphs
-export const PLANET_ORDER = [
-  'sun', 'earth', 'northNode', 'southNode', 'moon', 'mercury',
-  'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto'
-];
-
-export const PLANET_GLYPHS = {
-  sun: '☉', earth: '⊕', moon: '☽', northNode: '☊', southNode: '☋',
-  mercury: '☿', venus: '♀', mars: '♂', jupiter: '♃', saturn: '♄',
-  uranus: '♅', neptune: '♆', pluto: '♇'
-};
-
-export const PLANET_NAMES = {
-  sun: 'Sun', earth: 'Earth', moon: 'Moon', northNode: 'North Node',
-  southNode: 'South Node', mercury: 'Mercury', venus: 'Venus', mars: 'Mars',
-  jupiter: 'Jupiter', saturn: 'Saturn', uranus: 'Uranus', neptune: 'Neptune',
-  pluto: 'Pluto'
-};
+import { PLANET_ORDER, PLANET_GLYPHS, PLANET_NAMES } from './lib/glossary.js';
+export { PLANET_ORDER, PLANET_GLYPHS, PLANET_NAMES };
 
 // Traditional center colors (defined state): Head & G yellow, Ajna green,
 // Heart & Sacral red, Throat/Spleen/Solar Plexus/Root brown-tan — tuned
@@ -114,6 +99,8 @@ function palette() {
  * @param {boolean} [opts.planetColumns] - set false to hide columns but keep interactivity
  * @param {boolean} [opts.animate] - reveal animation (default true unless compact)
  * @param {function} [opts.onGateClick] - (gateNum) => void
+ * @param {function} [opts.onCenterClick] - (centerKey) => void
+ * @param {function} [opts.onPlanetClick] - (side, planet) => void; planet-column rows (else onGateClick)
  * @param {Iterable<number>} [opts.transitGates] - gates to ring with transit overlay
  * @returns {{ highlightGate: (g: number|null) => void }}
  */
@@ -149,54 +136,18 @@ export function renderBodygraph(container, chart, opts = {}) {
     for (const [planet, g] of Object.entries(chart.gates?.design || {})) addActivation(designGates, planet, g);
   }
 
-  let aGates = null, bGates = null, gateOwner = null, centerOwner = null, channelDynamic = null;
-  if (composite) {
-    aGates = new Set(composite.chartA.gates.all);
-    bGates = new Set(composite.chartB.gates.all);
-    gateOwner = (g) => { const a = aGates.has(g), b = bGates.has(g); return a && b ? 'both' : a ? 'a' : b ? 'b' : null; };
-  }
+  const pair = composite ? pairModel(composite.chartA, composite.chartB) : null;
+  const { aGates = null, bGates = null, gateOwner = null, centerOwner = null, channelDynamic = null } = pair || {};
 
   const activeGates = transit ? transit.activeGates : composite
-    ? new Set([...aGates, ...bGates])
+    ? pair.activeGates
     : new Set([...personalityGates.keys(), ...designGates.keys()]);
 
-  // Channels present across the relationship (both gates appear in either chart).
-  const compChannels = composite
-    ? CHANNELS.filter(ch => activeGates.has(ch.gates[0]) && activeGates.has(ch.gates[1]))
-    : null;
+  const compChannels = composite ? pair.compChannels : null;
   const renderedChannels = transit?.channels || (composite ? compChannels : chart.channels || []);
-  const definedChannelKeys = transit ? new Set(renderedChannels.map(ch => ch.gates.join('-'))) : composite
-    ? new Set(compChannels.map(ch => ch.gates.join('-')))
-    : new Set((chart.channels || []).map(ch => ch.gates.join('-')));
-
-  let definedCenters;
-  if (composite) {
-    const compCenters = new Set();
-    for (const ch of compChannels) for (const c of (ch.centers || [])) compCenters.add(c);
-    definedCenters = compCenters;
-    const aDef = new Set(composite.chartA.centers.definedNames);
-    const bDef = new Set(composite.chartB.centers.definedNames);
-    centerOwner = (key) => {
-      if (!compCenters.has(key)) return null;
-      const a = aDef.has(key), b = bDef.has(key);
-      if (a && b) return 'both';
-      if (a) return 'a';
-      if (b) return 'b';
-      return 'bridged'; // completed together — neither has it alone
-    };
-    channelDynamic = (ch) => {
-      const [g1, g2] = ch.gates;
-      const a1 = aGates.has(g1), a2 = aGates.has(g2), b1 = bGates.has(g1), b2 = bGates.has(g2);
-      const aFull = a1 && a2, bFull = b1 && b2;
-      if (aFull && bFull) return 'companionship';
-      if (aFull || bFull) return (aFull ? (b1 || b2) : (a1 || a2)) ? 'compromise' : 'dominance';
-      if ((a1 && b2) || (a2 && b1)) return 'electromagnetic';
-      return null;
-    };
-  } else {
-    definedCenters = new Set(chart.centers?.definedNames || []);
-  }
-  if (transit) definedCenters = transit.definedCenters;
+  const definedChannelKeys = new Set(renderedChannels.map(ch => ch.gates.join('-')));
+  const definedCenters = transit ? transit.definedCenters
+    : composite ? pair.compCenters : new Set(chart.centers?.definedNames || []);
   const transitGates = transit?.transitGates || new Set(opts.transitGates || []);
 
   // ---------- SVG ----------
@@ -726,9 +677,11 @@ export function renderBodygraph(container, chart, opts = {}) {
       if (g) {
         row.addEventListener('pointerenter', (e) => { if (e.pointerType !== 'touch') highlightGate(g.gate); });
         row.addEventListener('pointerleave', (e) => { if (e.pointerType !== 'touch') highlightGate(null); });
-        if (opts.onGateClick) {
+        if (opts.onPlanetClick || opts.onGateClick) {
           row.style.cursor = 'pointer';
-          row.addEventListener('click', () => opts.onGateClick(g.gate));
+          row.addEventListener('click', () => opts.onPlanetClick
+            ? opts.onPlanetClick(side, planet)
+            : opts.onGateClick(g.gate));
         }
       }
       col.appendChild(row);

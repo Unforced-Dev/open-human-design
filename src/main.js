@@ -6,7 +6,6 @@
  * persistence in src/lib/people.js (backed by natalengine profiles).
  */
 
-import { closeDetailDialog } from './lib/detail-dialog.js';
 import { computeChart, sensitivityCheck } from './lib/chartdata.js';
 import { esc } from './lib/format.js';
 import { listPeople, getPerson, savePerson, deletePerson, birthFromPerson, getLastPersonId, setLastPersonId, enableSync, setAiAccess, getAiAccess, setSharedGuest } from './lib/people.js';
@@ -18,6 +17,7 @@ import { setupTransitView, renderTransits } from './views/transits.js';
 import { setupConnectionView, renderConnectionView, compareWithGuest, rerenderConnectionGraphs } from './views/connection.js';
 import { setupTeamView, renderTeamView } from './views/team.js';
 import { setupTimelineView } from './views/timeline.js';
+import { initDetailPanel, closeDetail } from './detail-panel.js';
 
 // ==========================================
 // State
@@ -56,7 +56,7 @@ function toggleTheme() {
 const VIEWS = ['chart', 'transits', 'connection', 'team', 'timeline'];
 
 function showView(view) {
-  closeDetailDialog();
+  closeDetail(); // a panel belongs to the view it was opened from
   if (view !== 'timeline') timelineView?.deactivate();
   if (!currentData && view !== 'chart') return;
   document.body.classList.toggle('timeline-active', view === 'timeline' && !!currentData);
@@ -341,6 +341,7 @@ async function setupSync() {
 // ==========================================
 function init() {
   initTheme();
+  initDetailPanel();
   setupNavigation();
   setupPanelTabs();
   setupTransitView();

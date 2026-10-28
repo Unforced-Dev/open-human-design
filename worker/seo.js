@@ -15,6 +15,7 @@ import {
   calculateHumanDesign
 } from 'natalengine';
 import { CELEBRITIES } from './celebrities.js';
+import { LINE_THEMES, TYPE_GUIDANCE, CIRCUIT_DESC } from '../src/lib/glossary.js';
 
 const ORIGIN = 'https://openhumandesign.com';
 const CELEB_BY_SLUG = Object.fromEntries(CELEBRITIES.map(c => [c.slug, c]));
@@ -38,41 +39,13 @@ const PROFILE_KEYS = Object.keys(PROFILES); // "1/3" …
 const profileSlug = (k) => k.replace('/', '-');
 const profileKey = (slug) => slug.replace('-', '/');
 
-// Original generic line themes (the gate pages carry the specific 384; these
-// describe the universal quality, used on profile pages).
-const LINE_THEMES = {
-  1: { name: 'Investigator', text: 'The foundation. You build security by studying, understanding and getting to the bottom of things before you act — and others come to rely on the depth you lay down.' },
-  2: { name: 'Hermit', text: 'The natural. You carry an innate gift others often see before you do; it flowers in your own quiet time and resists being summoned on demand.' },
-  3: { name: 'Martyr', text: 'Trial and error. You learn by doing — bumping into what does not work and adapting — resilient, experimental and wise to whatever actually holds up.' },
-  4: { name: 'Opportunist', text: 'The networker. Your opportunities travel through relationships and trusted bonds; warmth and friendship, not cold pursuit, open the right doors.' },
-  5: { name: 'Heretic', text: 'The projected one. People project practical, universal solutions onto you; meet the moment and you are trusted as a leader, fall short and the same hope can sour — reputation matters.' },
-  6: { name: 'Role Model', text: 'The example. You live in three phases — a trial-and-error youth, a withdrawn observing middle, then a trusted, objective exemplar others measure themselves against.' }
-};
-
-// Brief original "how to live it" guidance per type (keeps type pages from
-// being thin).
-const TYPE_GUIDANCE = {
-  manifestor: 'Manifestors are here to initiate and get things moving. Your power comes from acting on your own urges rather than waiting — and from informing the people your actions affect, which dissolves the resistance that otherwise meets you. When you honour that, life feels peaceful; when you suppress it, anger.',
-  generator: 'Generators are the life force of the world, built to do work they love. Your power is not in chasing but in responding — letting things come to you and noticing the gut pull toward yes or no. Work that lights you up is sustainable; forcing what doesn\'t leads to frustration and burnout.',
-  manifestingGenerator: 'Manifesting Generators respond like a Generator and then move fast, often skipping steps and juggling several things at once. Your path is rarely linear, and that is by design. Respond first, then inform before you leap, and trust the multi-passionate route — frustration and anger both signal you have got ahead of your response.',
-  projector: 'Projectors are the guides, here to see and direct energy rather than generate it. Your gift lands when it is recognised and invited — pushing in uninvited meets resistance and exhaustion. Master what fascinates you, manage your energy, and wait for the right invitations; success feels like recognition, not hustle.',
-  reflector: 'Reflectors are rare mirrors of their community, sampling the energy around them. You are deeply affected by where you are and who you are with, so environment is everything. Give big decisions a full lunar cycle before committing — clarity comes over time, not on demand — and a true life feels like delight.'
-};
-
 const CHANNELS_FOR_GATE = (g) => Object.keys(CHANNEL_DESCRIPTIONS)
   .filter(k => k.split('-').map(Number).includes(g));
 const GATES_IN_CENTER = (c) => Object.entries(GATES)
   .filter(([, v]) => v.center === c).map(([g]) => +g).sort((a, b) => a - b);
 const CENTER_NAME = (c) => CENTERS[c]?.name || c;
 
-// Original circuit descriptions (the engine's keywords are terse).
 const CIRCUIT_ORDER = ['individual', 'tribal', 'collective', 'integration'];
-const CIRCUIT_DESC = {
-  individual: 'The Individual circuit is the energy of mutation and uniqueness — the drive to be yourself, follow your own knowing, and bring something genuinely new into the world. It empowers through difference, and its melancholy is the doorway to creative breakthrough. This is the current of the artist, the rebel, the one who can\'t help being authentic; it moves in pulses, not on demand.',
-  tribal: 'The Tribal circuit is the energy of support, family and resources — bargains, loyalty, and taking care of your own. It builds and sustains community through agreements and material security. Its concern is survival and continuity: who is provided for, who can be relied on, and what is promised. Tribal energy is emotional and touch-based, felt rather than reasoned.',
-  collective: 'The Collective circuit is the energy of sharing — patterns, logic and experience offered to all of humanity. It runs in two streams: the Logic stream, which tests what works and builds reliable, repeatable systems, and the Sensing (abstract) stream, which makes meaning out of lived experience. This is how humanity learns, plans and evolves together.',
-  integration: 'The Integration circuit is the energy of self-empowerment and survival — a tight cluster of channels linking the Self, Throat, Spleen and Sacral, focused on the individual thriving in the moment. It is the most self-referential current in the design: spontaneous, instinctive and quick, here to empower the self first so that it can then empower the collective.'
-};
 const CHANNELS_IN_CIRCUIT = (c) => CHANNELS.filter(ch => ch.circuit === c);
 
 // --- shared page shell ----------------------------------------------------
