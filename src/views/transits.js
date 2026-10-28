@@ -10,17 +10,28 @@ import { transitInstants, engineTransitArguments, formatTransitOffset } from '..
 import { buildTransitGraph } from '../lib/transit-graph.js';
 import { renderTransitLegend, renderTransitSummary, highlightTransitRows } from './transit-presentation.js';
 
-import { getCurrentChart, showTransitDetail } from './chart.js';
+import { registerScope, openDetail } from '../detail-panel.js';
+import { getCurrentChart } from './chart.js';
 
-let transitDetailContext = null;
+let transitDetailContext = null; // { transitGates, mode, model, api } of the graph on screen
+
+// Same renderers as the chart, told which gates the sky lights at the chosen time.
+registerScope('transit', {
+  renderer: 'chart',
+  context: () => {
+    const current = getCurrentChart();
+    return current && transitDetailContext && {
+      chart: current.chart, geneKeys: current.geneKeys, transitGates: transitDetailContext.model.transitGates
+    };
+  },
+  onShow: (_entry, result) => transitDetailContext?.api?.setPinned?.(result.pin || null),
+  onClose: () => transitDetailContext?.api?.setPinned?.(null)
+});
 
 export function setupTransitView() {
   document.getElementById('transits-view').addEventListener('click', event => {
     const button = event.target.closest('[data-transit-detail]');
-    if (button && transitDetailContext) {
-      const kind = button.dataset.transitDetail;
-      showTransitDetail(kind, kind === 'gate' ? Number(button.dataset.id) : button.dataset.id, transitDetailContext);
-    }
+    if (button && transitDetailContext) openDetail('transit', button.dataset.transitDetail, button.dataset.id, { trigger: button });
 
   });
   const previewDetail = event => {
@@ -126,8 +137,8 @@ export function renderTransits() {
       animate: false,
       transitGates,
       transitModel: model,
-      onGateClick: gate => showTransitDetail('gate', gate, context),
-      onCenterClick: center => showTransitDetail('center', center, context),
+      onGateClick: gate => openDetail('transit', 'gate', gate),
+      onCenterClick: center => openDetail('transit', 'center', center),
       onHighlight: highlightTransitRows
     });
   }

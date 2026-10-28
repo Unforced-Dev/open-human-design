@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "test": "node --test tests/*.test.js",
     "e2e:timeline": "node tests/timeline-e2e.mjs",
+    "e2e:layout": "node tests/layout.mjs",
     "e2e": "node tests/e2e.mjs"
   },
   "dependencies": {
