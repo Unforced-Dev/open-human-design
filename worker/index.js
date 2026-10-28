@@ -151,9 +151,10 @@ const oauthProvider = new OAuthProvider({
   // "plain", so this also rejects authorize requests that skip PKCE.
   allowPlainPKCE: false,
   // Each access token carries the scopes it was issued with (a client may
-  // downscope at /oauth/token), so the MCP tools can enforce them.
+  // downscope at /oauth/token), so the MCP tools can enforce them. Grants made
+  // here always hold a scope; an empty one predates enforcement: read-only.
   tokenExchangeCallback: ({ props, requestedScope }) => ({
-    accessTokenProps: { ...props, scope: requestedScope }
+    accessTokenProps: { ...props, scope: requestedScope.length ? requestedScope : ['charts:read'] }
   })
 });
 
