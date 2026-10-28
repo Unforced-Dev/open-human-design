@@ -98,17 +98,19 @@ function runTeamAnalysis() {
   });
 
   if (charts.length < 2) {
+    closeDetail();
     document.getElementById('team-content').innerHTML =
       '<p class="panel-intro">Add at least two people to analyze the group.</p>';
     return;
   }
 
   // Panels link people by name, so two "Alex"es must not collide.
-  const seen = new Map();
+  const seen = new Set();
   for (let i = 0; i < names.length; i++) {
-    const n = (seen.get(names[i]) || 0) + 1;
-    seen.set(names[i], n);
-    if (n > 1) names[i] = `${names[i]} (${n})`;
+    let name = names[i];
+    for (let n = 2; seen.has(name); n++) name = `${names[i]} (${n})`;
+    seen.add(name);
+    names[i] = name;
   }
 
   closeDetail();

@@ -335,6 +335,7 @@ const browser = await chromium.launch({ executablePath: CHROME, headless: true }
     await page.$eval(`#timeline-view .tl-row-name[data-row="${key}"]`, el => el.click());
     const next = await panelState(page);
     expect(next.open && !next.back, `row with panel open → ${JSON.stringify(next)}`);
+    expect(!(await page.$('#timeline-view .tl-bar[aria-pressed="true"]')), 'the previous bar stayed marked after opening another item');
     await page.keyboard.press('Escape');
     expect(!(await panelState(page)).open, 'Escape did not close the side panel');
     await page.$eval('.nav-link[data-view="chart"]', el => el.click());

@@ -19,6 +19,7 @@ const scopes = {};   // name -> { renderer?: 'chart'|'pair'|'team', context(), o
 let panel, backdrop, bodyEl, backBtn;
 let stack = [];      // [{ scope, kind, id }]
 let returnFocus = null;
+let shownScope = null; // scope of the item on screen; its onClose runs when that item goes
 
 export function registerScope(name, hooks) {
   scopes[name] = hooks;
@@ -48,6 +49,7 @@ function render({ keepScroll = false } = {}) {
     ${result.body}`;
   bodyEl.scrollTop = keepScroll ? scroll : 0;
   backBtn.hidden = stack.length < 2;
+  shownScope = entry.scope;
   scope.onShow?.(entry, result, bodyEl);
 }
 
@@ -67,9 +69,13 @@ function setMode() {
 export function openDetail(scope, kind, id, { push = false, trigger = null } = {}) {
   if (!panel || !scopes[scope]) return;
   const wasOpen = isOpen();
-  if (!push) stack = [];
+  if (!push) {
+    if (wasOpen) endShown(); // a fresh trail ends the item it replaces (pins, timeline timing)
+    stack = [];
+  }
   stack.push({ scope, kind, id: String(id) });
-  if (!wasOpen) returnFocus = trigger || (document.activeElement !== document.body ? document.activeElement : null);
+  // Focus returns to the latest trigger from outside the panel.
+  if (!wasOpen || (!push && trigger)) returnFocus = trigger || (document.activeElement !== document.body ? document.activeElement : null);
   panel.hidden = false;
   setMode();
   render();
@@ -80,14 +86,19 @@ export function openDetail(scope, kind, id, { push = false, trigger = null } = {
 
 export function closeDetail() { close(); }
 
+function endShown() {
+  const scope = shownScope;
+  shownScope = null;
+  if (scope) scopes[scope]?.onClose?.();
+}
+
 function close() {
   if (!panel || panel.hidden) return;
-  const entry = current() || stack[0];
   panel.classList.remove('open');
   panel.hidden = true;
   stack = [];
   setMode();
-  if (entry) scopes[entry.scope]?.onClose?.();
+  endShown();
   // Hand focus back to whatever opened the panel, if it's still on the page.
   if (returnFocus?.isConnected) returnFocus.focus({ preventScroll: true });
   returnFocus = null;

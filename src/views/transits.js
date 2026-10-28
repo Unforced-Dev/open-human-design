@@ -10,7 +10,7 @@ import { transitInstants, engineTransitArguments, formatTransitOffset } from '..
 import { buildTransitGraph } from '../lib/transit-graph.js';
 import { renderTransitLegend, renderTransitSummary, highlightTransitRows } from './transit-presentation.js';
 
-import { registerScope, openDetail, refreshDetail } from '../detail-panel.js';
+import { registerScope, openDetail, closeDetail, refreshDetail } from '../detail-panel.js';
 import { getCurrentChart } from './chart.js';
 
 let transitDetailContext = null; // { transitGates, mode, model, api } of the graph on screen
@@ -105,6 +105,7 @@ export function renderTransits() {
     choiceLabel.hidden = true;
     document.getElementById('transit-bodygraph').replaceChildren();
     document.getElementById('transit-content').replaceChildren();
+    closeDetail(); // nothing on screen for an open item to belong to
     return;
   }
 
