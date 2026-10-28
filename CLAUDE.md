@@ -63,6 +63,8 @@ Single-page app, 4 views. State lives in main.js (`currentData`); views read it 
 ## Key conventions
 
 - Personality = black, right column; Design = red, left column; both = candy stripe.
+- Transits use teal (`--transit-source`), coloured by source: birth, transit, both, completed by
+  transit (from PR #6; replaces the amber dashed rings — awaiting Aaron's sign-off).
 - Traditional center colors when defined (Head/G yellow, Ajna green, Heart/Sacral red, rest tan);
   undefined = white.
 - Timezone is always resolved from IANA history at the birth moment (never longitude estimates,
