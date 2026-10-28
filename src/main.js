@@ -357,8 +357,8 @@ function init() {
 
   entryApi = setupEntryView({
     onSubmit: (birth, { savedPerson = false } = {}) => {
-      let savedCount = 0;
-      try { savedCount = listPeople().length; } catch { /* storage unavailable */ }
+      let savedCount = Infinity; // storage unavailable: nothing to keep, so no stand-in name
+      try { savedCount = listPeople().length; } catch { /* private mode */ }
       const name = savedPerson ? null : nameToSave(birth.name, savedCount);
       loadBirth(name ? { ...birth, name } : birth, { save: !!name });
       if (pendingCompare) {

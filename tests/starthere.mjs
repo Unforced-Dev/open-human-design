@@ -63,6 +63,11 @@ const newPage = async (viewport = { width: 390, height: 844 }) => {
     expect(await profiles(page) === 1, `expected 1 saved profile, found ${await profiles(page)}`);
   });
 
+  await check('"Me" stays on this device: not in the address bar or share links', async () => {
+    const search = await page.evaluate(() => location.search);
+    expect(/[?&]d=1990-06-15/.test(search) && !/[?&]n=/.test(search), `address bar: ${search}`);
+  });
+
   await check('it is still there after coming back to the bare address', async () => {
     await page.goto(BASE);
     await page.waitForSelector('#chart-view:not(.hidden) .bodygraph-svg');
@@ -129,6 +134,14 @@ const newPage = async (viewport = { width: 390, height: 844 }) => {
     await page.keyboard.press('Escape');
   });
 
+  await check('a chart opened from someone else\'s link gets no Start here card', async () => {
+    const other = await newPage();
+    await other.goto(`${BASE}/?d=1985-03-20&t=08:00&tz=0&n=Sam`);
+    await other.waitForSelector('#chart-view:not(.hidden) .bodygraph-svg');
+    expect(!(await other.isVisible('#start-here')), 'card shown on a shared chart');
+    await other.context().close();
+  });
+
   await check('"Got it" hides the card, and it stays hidden after a reload and for other charts', async () => {
     await page.click('#start-here .start-dismiss');
     expect(!(await page.isVisible('#start-here')), 'still visible after Got it');
@@ -182,7 +195,7 @@ const newPage = async (viewport = { width: 390, height: 844 }) => {
   await check('one sensitive item: names it plainly, no "one fine detail"', async () => {
     await enterManual(page, { name: 'One', date: '1990-01-01', time: '21:15', tz: 0 });
     const text = await note();
-    expect(/your Moon could change/.test(text), text);
+    expect(/Your Moon could change if your birth time is off by 15 minutes or less/.test(text), text);
     expect(!/fine detail|only thing/i.test(text), text);
   });
 
@@ -190,7 +203,7 @@ const newPage = async (viewport = { width: 390, height: 844 }) => {
     await page.selectOption('#people-switcher', '__new');
     await enterManual(page, { name: 'Two', date: '1990-01-03', time: '21:15', tz: 0 });
     const text = await note();
-    expect(/your Profile and Variable could change/.test(text), text);
+    expect(/Your Profile and Variable could change/.test(text), text);
     expect(!/fine detail|only thing/i.test(text), text);
   });
   await page.context().close();

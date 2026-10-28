@@ -9,14 +9,14 @@
  * Pure, no DOM: node tests check every step resolves for many charts.
  */
 
-import { TYPES, CENTERS } from 'natalengine';
+import { TYPES } from 'natalengine';
 import { STRATEGY_PRACTICE, AUTHORITY_PRACTICE, CENTER_NOTICE } from './glossary.js';
+import { centerName } from './details.js';
+import { SELF_NAME } from './share.js';
 
 // Fully open centers come first (they take in the most), then undefined
 // ones; within each, the conditioning people tend to feel most day to day.
 const NOTICE_ORDER = ['solar', 'sacral', 'heart', 'spleen', 'head', 'ajna', 'g', 'throat', 'root'];
-
-const centerLabel = (key) => key === 'heart' ? 'Heart (Ego)' : key === 'solar' ? 'Solar Plexus' : (CENTERS[key]?.name || key);
 
 /** The not-defined center to point a newcomer at, or null if all nine are defined. */
 export function centerToNotice(chart) {
@@ -35,13 +35,13 @@ export function startSteps(chart) {
   const center = centerToNotice(chart);
   if (center) {
     const status = chart.centers.openNames.includes(center) ? 'open' : 'undefined';
-    steps.push({ kind: 'center', id: center, label: 'An open center to notice', value: `${centerLabel(center)} · ${status}`, line: CENTER_NOTICE[center] });
+    steps.push({ kind: 'center', id: center, label: `An ${status} center to notice`, value: centerName(center), line: CENTER_NOTICE[center] });
   }
   return steps;
 }
 
 /** What a newcomer's first chart is saved as when they leave Name blank. */
-export const FIRST_CHART_NAME = 'Me';
+export const FIRST_CHART_NAME = SELF_NAME;
 
 /**
  * The name a newly entered chart is saved under, or null to leave it

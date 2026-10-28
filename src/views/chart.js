@@ -99,7 +99,7 @@ export function renderChartView(data, { onShare, onRename } = {}) {
     </div>
   `;
   document.getElementById('rename-chart')?.addEventListener('click', () => onRename());
-  renderStartHere(chart);
+  renderStartHere(chart, !!birth.id);
 
   document.getElementById('share-chart').addEventListener('click', async (e) => {
     if (!onShare) return;
@@ -167,9 +167,11 @@ export function renderChartView(data, { onShare, onRename } = {}) {
 const START_KEY = 'ohd-start-here';
 const startHidden = () => { try { return localStorage.getItem(START_KEY) === 'hidden'; } catch { return false; } };
 
-function renderStartHere(chart) {
+// Saved charts only: a chart opened from someone's link isn't the viewer's,
+// and the steps speak to the chart's owner.
+function renderStartHere(chart, saved) {
   const card = document.getElementById('start-here');
-  if (startHidden()) { card.hidden = true; card.innerHTML = ''; return; }
+  if (!saved || startHidden()) { card.hidden = true; card.innerHTML = ''; return; }
   card.hidden = false;
   card.dataset.detailScope = 'chart';
   card.innerHTML = `
@@ -179,7 +181,7 @@ function renderStartHere(chart) {
     </div>
     <ol class="start-steps" aria-labelledby="start-title">
       ${startSteps(chart).map((step, i) => `
-        <li><button type="button" class="start-step" data-detail="${esc(step.kind)}:${esc(step.id)}">
+        <li><button type="button" class="start-step" ${dt(step.kind, step.id)}>
           <span class="start-num" aria-hidden="true">${i + 1}</span>
           <span class="start-body">
             <span class="start-label">${esc(step.label)} · <strong>${esc(step.value)}</strong></span>
@@ -198,7 +200,7 @@ function renderStartHere(chart) {
 // Phones: the Foundation moves up, between Start here and the bodygraph, so
 // the reading comes before the long scroll past the graph. Moving the node
 // (not CSS order) keeps reading and focus order the same as what's on screen.
-const PHONE = window.matchMedia('(max-width: 640px)');
+const PHONE = window.matchMedia('(max-width: 640px)'); // = the phone @media in styles.css
 function placeFoundation() {
   const panel = document.getElementById('foundation-panel');
   const layout = document.querySelector('#chart-view .chart-layout');
@@ -279,8 +281,9 @@ function renderFoundation(chart, sensitivity = null, birth = null) {
       : `
       <div class="reliability reliability-soft">
         <span class="reliability-dot"></span>
-        <span>If your birth time is off by 15 minutes or more, your <strong>${esc(humanList(sensitivity.shifts))}</strong>
-        could change. The rest of your foundation stays the same. A time from a birth certificate is usually close enough.</span>
+        <span>Your <strong>${esc(humanList(sensitivity.shifts))}</strong> could change if your birth time is off
+        by 15 minutes or less. The rest of your foundation holds within that range. If you know your time to the minute,
+        the chart as shown is right.</span>
       </div>`;
   }
   const crossName = chart.incarnationCross?.fullName || chart.incarnationCross?.name || 'Unknown';

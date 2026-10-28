@@ -53,3 +53,9 @@ test('timeUnknown round-trips', () => {
   assert.equal(out.timeUnknown, true);
   assert.equal(paramsToBirth('d=1990-06-15').timeUnknown, false);
 });
+
+test('the stand-in name "Me" never goes into a link', () => {
+  const p = birthToParams({ ...full, name: 'Me' });
+  assert.equal(p.has('n'), false);
+  assert.equal(birthToParams({ ...full, name: 'Meg' }).get('n'), 'Meg');
+});

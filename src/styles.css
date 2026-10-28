@@ -2446,7 +2446,7 @@ body.dp-lock { overflow: hidden; }
 }
 
 /* Phones: the reading comes first (src/views/chart.js moves the Foundation
-   up), and every block is condensed so the tabs are within two screens. */
+   up at this same breakpoint), and every block is condensed. */
 @media (max-width: 640px) {
   .type-banner { padding: 18px 14px 16px; }
   .type-banner .type-plain { margin-top: 10px; font-size: 13.5px; line-height: 1.5; }
