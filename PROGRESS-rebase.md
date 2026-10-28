@@ -13,6 +13,9 @@ Deps: node_modules copied from ~/Code/wt/ohd-tablet-on-main (same lockfile; `npm
 - New on main: the share-card download was named after the chart, so a first chart saved as
   `me-chart.png`. Fixed; tests/starthere.mjs now reads the copied link, invite, /og/card.png request
   and download name (seen red without the fix, and red again with the share.js guard removed).
+- /code-review (medium): reload booted from the address bar (no id), so "Me", "Add your name" and the card
+  vanished on reload, and the "Got it stays hidden after reload" check was vacuous. Fixed in main.js boot
+  (52adff8); new reload check seen red before the fix, and the Got-it check now goes red with dismissal broken.
 - 389e875 (walkthrough/video/progress) not replayed as-is: WALKTHROUGH.md rewritten for this base,
   main's tablet walkthrough moved to walkthrough/WALKTHROUGH-tablet-pass.md, no video files.
 - Screenshots retaken from this branch (walkthrough/start-here/); before-390/800 retaken from origin/main.
@@ -20,7 +23,12 @@ Deps: node_modules copied from ~/Code/wt/ohd-tablet-on-main (same lockfile; `npm
 - Preview 8534: `sudo tailscale serve --bg --https=8534 ~/Code/wt/ohd-start-here-on-main/dist-preview`
   (rebuild: `npx vite build --outDir dist-preview --emptyOutDir`; dist-preview is in .git/info/exclude).
 
-## Open (carried from start-here)
+## Open
+- Review findings left as they are (approved behaviour or out of scope): "Me" is a name-string sentinel,
+  not a profile flag (a person deliberately named "Me" loses the name in links); the card also shows on
+  saved friends' charts; an invited newcomer without a name is labelled "Me" (was "You") in Connection;
+  FIRST_CHART_NAME is an alias of SELF_NAME.
+- Upstream unset on purpose (it pointed at origin/main); push with `git push -u origin start-here-on-main`.
 - Phone trade-off: the bodygraph now starts at 1.69 screens (main: 0.54) because the Foundation moved above it.
 - Signed-in user on a new device could get a stray "Me" if they enter a nameless chart before sync pulls.
 - No way to bring the card back after "Got it" (other than clearing site data).
