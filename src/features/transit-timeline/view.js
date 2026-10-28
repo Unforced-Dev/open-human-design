@@ -554,7 +554,7 @@ export function createTransitTimeline({ root, host }) {
       wallTime(selected, candidate); // Validate before changing the working zone.
       const zoneChanged = zone !== candidate;
       zone = candidate;
-      if (zoneChanged && preset !== '1') {
+      if (zoneChanged) {
         // Calendar days and anniversaries belong to the chosen zone, not to the
         // current zoomed viewport or cursor position reached while exploring it.
         const wasFullRange = windowRange.start === timelineRange.start && windowRange.end === timelineRange.end;
