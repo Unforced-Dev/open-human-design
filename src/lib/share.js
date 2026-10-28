@@ -10,12 +10,19 @@
  * Only `d` is required; everything else has sensible fallbacks.
  */
 
+/**
+ * What a nameless first chart is called on its own device. It only means
+ * something to that person, so it never goes into a link: a recipient
+ * would read "Me's chart".
+ */
+export const SELF_NAME = 'Me';
+
 export function birthToParams(birth) {
   const p = new URLSearchParams();
   p.set('d', birth.birthDate);
   if (birth.birthTime) p.set('t', birth.birthTime);
   if (birth.timezone !== undefined && birth.timezone !== null) p.set('tz', String(birth.timezone));
-  if (birth.name) p.set('n', birth.name);
+  if (birth.name && birth.name !== SELF_NAME) p.set('n', birth.name);
   if (birth.timeUnknown) p.set('tu', '1');
   if (birth.location) {
     if (birth.location.name) p.set('place', birth.location.name);

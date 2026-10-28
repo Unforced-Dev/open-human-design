@@ -66,7 +66,7 @@
         <form id="birth-form" class="birth-form">
           <div class="form-row form-row-2">
             <div class="form-group">
-              <label for="birth-name">Name <span class="label-soft">(optional, to save)</span></label>
+              <label for="birth-name">Name <span class="label-soft" id="birth-name-hint">(optional)</span></label>
               <input type="text" id="birth-name" placeholder="Your name" autocomplete="off">
               <label class="checkbox-label hidden" id="ai-access-wrap"><input type="checkbox" id="ai-access"> Let my connected AI see this person</label>
             </div>
@@ -104,6 +104,7 @@
     <section id="chart-view" class="chart-view hidden">
       <div id="shared-cta" class="shared-cta hidden"></div>
       <div id="type-banner" class="type-banner"></div>
+      <section id="start-here" class="start-here" aria-label="Start here" hidden></section>
 
       <div class="chart-layout">
         <div class="chart-column">

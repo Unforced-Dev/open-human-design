@@ -2359,3 +2359,117 @@ body.dp-lock { overflow: hidden; }
 
 /* Panel items lit from the bodygraph (relational highlight reaches the panel) */
 .dlink.row-lit, .gate-chip.row-lit, .dp-card.row-lit { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+
+/* =============================================
+   Start here — three first steps under the banner
+   ============================================= */
+
+.start-here {
+  max-width: 720px;
+  width: calc(100% - 32px);
+  margin: 16px auto 0;
+  padding: 14px 16px 16px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+.start-here[hidden] { display: none; }
+
+.start-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.start-title {
+  font-family: var(--font-serif);
+  font-size: 19px;
+  font-weight: 400;
+  color: var(--text);
+}
+.start-dismiss {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font: 500 12px var(--font);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.start-dismiss:hover { color: var(--text); border-color: var(--text-tertiary); }
+
+.start-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.start-step {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
+  text-align: left;
+  font-family: var(--font);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.start-step:hover { border-color: var(--accent); }
+.start-step:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+[data-theme="dark"] .start-step { background: var(--bg); border-color: var(--border); }
+
+.start-num {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  margin-top: 1px;
+}
+.start-body { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.start-label { font-size: 12.5px; color: var(--text-secondary); overflow-wrap: anywhere; }
+.start-label strong { color: var(--text); font-weight: 600; }
+.start-line { font-size: 13.5px; line-height: 1.5; color: var(--text); }
+.start-arrow { flex-shrink: 0; color: var(--text-tertiary); font-size: 18px; line-height: 1; align-self: center; }
+
+.banner-rename { display: inline-block; margin: 0 auto 6px; }
+
+/* Tablet and up: the three steps sit side by side; on wide screens across
+   the chart's full width. */
+@media (min-width: 641px) {
+  .start-steps { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .start-step { height: 100%; }
+}
+@media (min-width: 1024px) {
+  .start-here { max-width: calc(var(--max-width) - 48px); }
+}
+
+/* Phones: the reading comes first (src/views/chart.js moves the Foundation
+   up at this same breakpoint), and every block is condensed. */
+@media (max-width: 640px) {
+  .type-banner { padding: 18px 14px 16px; }
+  .type-banner .type-plain { margin-top: 10px; font-size: 13.5px; line-height: 1.5; }
+  .banner-actions { justify-content: center; gap: 6px; margin-top: 12px; }
+  .banner-actions .btn-small { font-size: 11.5px; padding: 6px 9px; }
+
+  .start-here { margin-top: 12px; padding: 12px; }
+  .start-head { margin-bottom: 8px; }
+  .start-steps { gap: 6px; }
+  .start-step { padding: 9px 10px; gap: 10px; }
+  .start-line { font-size: 13px; line-height: 1.45; }
+
+  #chart-view .chart-layout { gap: 16px; }
+  #chart-view .chart-layout > .panel { margin-bottom: 0; }
+  #foundation-panel { padding: 14px; }
+  #foundation-panel .foundation-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  #foundation-panel .foundation-item { padding: 10px 24px 10px 12px; }
+  #foundation-panel .foundation-item { overflow-wrap: break-word; }
+  #foundation-panel .foundation-item[data-detail]::after { right: 8px; }
+  #foundation-panel .foundation-item .value { font-size: 14px; line-height: 1.35; }
+  #foundation-panel .foundation-item .detail { display: none; }
+  #foundation-panel .reliability { margin-bottom: 10px; }
+
+  /* The Planets tab carries the same activations, with more detail. */
+  #bodygraph-container .bg-planets { display: none; }
+}

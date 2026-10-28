@@ -18,6 +18,7 @@ import { setupConnectionView, renderConnectionView, compareWithGuest, rerenderCo
 import { setupTeamView, renderTeamView } from './views/team.js';
 import { setupTimelineView } from './views/timeline.js';
 import { initDetailPanel, closeDetail } from './detail-panel.js';
+import { nameToSave } from './lib/starthere.js';
 
 // ==========================================
 // State
@@ -230,7 +231,8 @@ function loadBirth(birth, { save = false } = {}) {
   renderChartView(currentData, {
     // No optional chaining — a missing clipboard API must reject so the
     // button reports failure honestly instead of "copied".
-    onShare: () => navigator.clipboard.writeText(shareUrl(resolved))
+    onShare: () => navigator.clipboard.writeText(shareUrl(resolved)),
+    onRename: () => openEditPerson(resolved)
   });
   renderPeopleSwitcher();
   showView('chart');
@@ -355,7 +357,10 @@ function init() {
 
   entryApi = setupEntryView({
     onSubmit: (birth, { savedPerson = false } = {}) => {
-      loadBirth(birth, { save: !savedPerson && !!birth.name });
+      let savedCount = Infinity; // storage unavailable: nothing to keep, so no stand-in name
+      try { savedCount = listPeople().length; } catch { /* private mode */ }
+      const name = savedPerson ? null : nameToSave(birth.name, savedCount);
+      loadBirth(name ? { ...birth, name } : birth, { save: !!name });
       if (pendingCompare) {
         pendingCompare = false;
         document.getElementById('entry-invite')?.classList.add('hidden');
@@ -395,7 +400,13 @@ function init() {
   }
 
   if (fromUrl) {
-    loadBirth(fromUrl, { save: false });
+    // A reload carries the last saved chart's own link: open the saved chart,
+    // so it keeps its id ("Me", Start here) rather than becoming a stranger's.
+    const last = getLastPersonId() && getPerson(getLastPersonId());
+    const params = new URLSearchParams(window.location.search);
+    params.delete('view');
+    const own = last && birthToParams(birthFromPerson(last)).toString() === params.toString();
+    loadBirth(own ? birthFromPerson(last) : fromUrl, { save: false });
     if (deepLinkView && VIEWS.includes(deepLinkView)) showView(deepLinkView);
     // Shared-chart landing: someone opened a link to a chart that isn't
     // theirs — invite them to make their own (the viral loop).
