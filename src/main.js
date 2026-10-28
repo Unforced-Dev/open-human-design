@@ -6,6 +6,7 @@
  * persistence in src/lib/people.js (backed by natalengine profiles).
  */
 
+import { closeDetailDialog } from './lib/detail-dialog.js';
 import { computeChart, sensitivityCheck } from './lib/chartdata.js';
 import { esc } from './lib/format.js';
 import { listPeople, getPerson, savePerson, deletePerson, birthFromPerson, getLastPersonId, setLastPersonId, enableSync, setAiAccess, getAiAccess, setSharedGuest } from './lib/people.js';
@@ -14,8 +15,9 @@ import { paramsToBirth, birthToParams, shareUrl } from './lib/share.js';
 import { setupEntryView } from './views/entry.js';
 import { renderChartView, setupPanelTabs, rerenderBodygraph } from './views/chart.js';
 import { setupTransitView, renderTransits } from './views/transits.js';
-import { setupConnectionView, renderConnectionView, compareWithGuest } from './views/connection.js';
+import { setupConnectionView, renderConnectionView, compareWithGuest, rerenderConnectionGraphs } from './views/connection.js';
 import { setupTeamView, renderTeamView } from './views/team.js';
+import { setupTimelineView } from './views/timeline.js';
 
 // ==========================================
 // State
@@ -23,6 +25,7 @@ import { setupTeamView, renderTeamView } from './views/team.js';
 let currentData = null; // { birth, chart, geneKeys, sensitivity }
 let pendingCompare = false; // a connection invite is waiting for the visitor's own chart
 let entryApi = null;
+let timelineView = null;
 
 // ==========================================
 // Theme
@@ -41,20 +44,30 @@ function toggleTheme() {
   // Bodygraph colors are computed at render time — refresh visible graphs
   if (currentData) {
     rerenderBodygraph();
+    rerenderConnectionGraphs();
     if (!document.getElementById('transits-view').classList.contains('hidden')) renderTransits();
+    timelineView?.refresh();
   }
 }
 
 // ==========================================
 // Navigation
 // ==========================================
-const VIEWS = ['chart', 'transits', 'connection', 'team'];
+const VIEWS = ['chart', 'transits', 'connection', 'team', 'timeline'];
 
 function showView(view) {
+  closeDetailDialog();
+  if (view !== 'timeline') timelineView?.deactivate();
   if (!currentData && view !== 'chart') return;
+  document.body.classList.toggle('timeline-active', view === 'timeline' && !!currentData);
 
   document.querySelectorAll('.nav-link').forEach(l =>
     l.classList.toggle('active', l.dataset.view === view));
+  const activeLink = document.querySelector(`.nav-link[data-view="${view}"]`);
+  const nav = activeLink?.parentElement;
+  if (nav && nav.scrollWidth > nav.clientWidth) {
+    nav.scrollLeft = activeLink.offsetLeft - nav.offsetLeft - (nav.clientWidth - activeLink.offsetWidth) / 2;
+  }
 
   for (const v of VIEWS) {
     document.getElementById(`${v}-view`).classList.add('hidden');
@@ -68,6 +81,7 @@ function showView(view) {
   if (view === 'transits') renderTransits();
   if (view === 'connection') renderConnectionView();
   if (view === 'team') renderTeamView();
+  if (view === 'timeline') timelineView?.activate();
 }
 
 function setupNavigation() {
@@ -109,6 +123,7 @@ function setupPeopleSwitcher() {
   select.addEventListener('change', () => {
     const value = select.value;
     if (value === '__new') {
+      timelineView?.deactivate();
       currentData = null;
       setLastPersonId(null);
       history.replaceState(null, '', window.location.pathname);
@@ -121,6 +136,7 @@ function setupPeopleSwitcher() {
     if (value === '__delete') {
       const id = currentData?.birth?.id;
       if (id && confirm(`Remove ${currentData.birth.name} from saved charts?`)) {
+        timelineView?.deactivate();
         try { deletePerson(id); } catch (e) { console.warn('Could not delete person:', e); }
         setLastPersonId(null);
         currentData = null;
@@ -330,6 +346,7 @@ function init() {
   setupTransitView();
   setupConnectionView();
   setupTeamView();
+  timelineView = setupTimelineView();
   setupPeopleSwitcher();
 
   document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
@@ -389,6 +406,7 @@ function init() {
           <button id="make-own" class="link-button" style="display:inline;margin:0;font-size:inherit">make your own free chart →</button>`;
         banner.classList.remove('hidden');
         document.getElementById('make-own').addEventListener('click', () => {
+          timelineView?.deactivate();
           currentData = null;
           history.replaceState(null, '', window.location.pathname);
           banner.classList.add('hidden');

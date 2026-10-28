@@ -5,7 +5,8 @@ export function esc(str) {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 /** "1990-06-15" + "14:30" → "June 15, 1990 · 2:30 PM" */
