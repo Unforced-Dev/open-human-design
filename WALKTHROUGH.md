@@ -42,3 +42,22 @@ Narrated video (118 s, Kokoro voice, signed as Uni): `~/.local/share/uni/videos/
    *"On a wide screen the same panel sits beside the chart."*
 
 Before/after screenshots of every view at 800×1280, light and dark: `walkthrough/ux-tablet/{before,after}/`.
+
+## On the new main (branch `tablet-on-main`)
+
+The tablet pass replayed onto main after PR #10. Screenshots from the real build, 390×844 and
+800×1280: `walkthrough/tablet-on-main/` (`390-…` and `800-…`, light, plus dark for the two transit panels).
+Preview: https://uni.taildf9ce2.ts.net:8533/ now serves this branch.
+
+7. **Transits use the same panel** (`800-light-transit-detail.png`).
+   Tap Transit Sun: the panel shows the gate's source (teal badge), your birth activations, the transiting
+   planets, and channels and center as the transit graph draws them. "Transit only" drops the birth side.
+   *"Transits open the same panel. It shows what the sky adds, and it matches the graph."*
+
+8. **The Timeline too, with timing** (`800-light-timeline-detail.png`, `390-light-timeline-detail.png`).
+   Tap a teal bar: the panel opens on that item, with how long the activation lasts and when it starts and ends.
+   *"On the Timeline, tapping a bar tells you what it is and how long it lasts."*
+
+9. **The phone nav fits** (`390-light-chart-centers.png`).
+   All five items, Timeline included, sit on one row and read in full at 360 and 390 px.
+   *"On a phone, all five sections fit on one line."*
