@@ -97,6 +97,15 @@ const newPage = async (viewport = { width: 390, height: 844 }) => {
     expect(await bannerName(page) === 'Me', `came back to "${await bannerName(page)}"`);
   });
 
+  await check('a reload keeps it the saved "Me" chart: card and "Add your name" stay', async () => {
+    await page.reload();
+    await page.waitForSelector('#chart-view:not(.hidden) .bodygraph-svg');
+    expect(await bannerName(page) === 'Me', `after reload: "${await bannerName(page)}"`);
+    expect(await page.isVisible('#rename-chart'), '"Add your name" gone after reload');
+    expect(await page.isVisible('#start-here'), 'Start here gone after reload');
+    expect(await profiles(page) === 1, `reload made ${await profiles(page)} profiles`);
+  });
+
   await check('"Add your name" renames it in place', async () => {
     await page.click('#rename-chart');
     await page.fill('#edit-name', 'Riley');

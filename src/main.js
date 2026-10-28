@@ -400,7 +400,13 @@ function init() {
   }
 
   if (fromUrl) {
-    loadBirth(fromUrl, { save: false });
+    // A reload carries the last saved chart's own link: open the saved chart,
+    // so it keeps its id ("Me", Start here) rather than becoming a stranger's.
+    const last = getLastPersonId() && getPerson(getLastPersonId());
+    const params = new URLSearchParams(window.location.search);
+    params.delete('view');
+    const own = last && birthToParams(birthFromPerson(last)).toString() === params.toString();
+    loadBirth(own ? birthFromPerson(last) : fromUrl, { save: false });
     if (deepLinkView && VIEWS.includes(deepLinkView)) showView(deepLinkView);
     // Shared-chart landing: someone opened a link to a chart that isn't
     // theirs — invite them to make their own (the viral loop).
