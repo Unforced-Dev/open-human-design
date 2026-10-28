@@ -57,6 +57,17 @@ npm install        # natalengine comes from npm
 npm run dev
 ```
 
+Transit time defaults to minute precision. Enable **Seconds** beside the time to enter
+`HH:mm:ss`; disabling it resets seconds to `00`. **Now** uses the selected precision.
+
+NatalEngine 1.6.0 drops seconds in two calculation steps. The install script
+applies a small, version-checked patch in `scripts/patch-natalengine-seconds.mjs`
+so Transit calculations retain seconds; other calculators keep their existing
+behavior. The dependency is pinned until this is supported upstream. If you
+install with `--ignore-scripts`, run the patch script manually before building.
+After changing the patch, restart Vite with `npm run dev -- --force` to refresh
+its cached dependency bundle.
+
 ```bash
 npm test       # unit tests
 npm run e2e    # browser smoke test (dev server must be running)
