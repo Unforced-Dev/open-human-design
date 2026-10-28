@@ -7,10 +7,9 @@ import { closeDetailDialog } from '../lib/detail-dialog.js';
 import { getCurrentChart, showTransitDetail } from './chart.js';
 import { renderBodygraph, PLANET_ORDER, PLANET_NAMES, PLANET_GLYPHS } from '../bodygraph.js';
 
-export function setupTimelineView(options = {}) {
+export function setupTimelineView() {
   return createTransitTimeline({
     root: document.getElementById('timeline-view'),
-    ...options,
     host: {
       getChart: getCurrentChart,
       snapshot,

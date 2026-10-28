@@ -1,4 +1,4 @@
-/** Replace through the feature's `messages` option; never read a skin or DOM. */
+/** English UI copy for the timeline. */
 export const en = {
   title: 'Transit timeline', eyebrow: 'EXPLORE THROUGH TIME',
   intro: 'Move through time. See what changes, and how long it stays.',
@@ -43,8 +43,6 @@ export const en = {
   timelineHelp: 'Arrow keys: 1 minute · Shift + arrow: 1 hour · + / −: zoom',
 };
 
-export function translator(messages = {}) {
-  const dictionary = { ...en, ...messages };
-  return (key, values = {}) => String(dictionary[key] ?? key)
-    .replace(/\{(\w+)\}/g, (_, name) => String(values[name] ?? `{${name}}`));
+export function t(key, values = {}) {
+  return String(en[key] ?? key).replace(/\{(\w+)\}/g, (_, name) => String(values[name] ?? `{${name}}`));
 }

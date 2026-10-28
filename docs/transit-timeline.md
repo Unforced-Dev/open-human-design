@@ -56,7 +56,7 @@ The app entry is `src/views/timeline.js`. It supplies chart access, source model
 
 The view exposes `activate()`, `deactivate()`, `refresh()`, and `destroy()`. Deactivation cancels current work; destruction releases workers and listeners. The existing detail renderer accepts optional `decorateDetail` and `onDetailClose` callbacks so timeline navigation can update the same dialog without introducing another modal.
 
-The feature accepts message, locale, and row-label overrides. This contribution contains English UI only. It uses the app's palette and transit CSS properties; it introduces no localization framework, skin editor, or renderer replacement.
+The UI is English only (`messages.js`) and uses the app's `esc()` and transit CSS properties.
 
 ## Development and validation
 

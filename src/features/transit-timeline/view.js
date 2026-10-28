@@ -1,5 +1,6 @@
 import { DAY, MINUTE, centeredWindow, intervalAt } from './core.js';
-import { translator } from './messages.js';
+import { t } from './messages.js';
+import { esc } from '../../lib/format.js';
 import { displayTime, wallTime, formatDuration } from './time.js';
 import { calendarRuler } from './ruler.js';
 import { RANGE_OPTIONS, presetWindow } from './presets.js';
@@ -7,7 +8,6 @@ import { createTimelineClient } from './client.js';
 import { panWindow, panTimeline, instantAt, ratioAt, clipInterval, clampWindow, zoomWindow } from './viewport.js';
 import './timeline.css';
 
-const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const setText = (node, value) => { if (node.textContent !== value) node.textContent = value; };
 
 // Keep hovered/focused rows and intervals alive while their positions change.
@@ -44,14 +44,13 @@ function reconcile(parent, markup) {
 }
 
 /**
- * A removable view. Host provides chart/calculation/detail adapters; messages
- * and label provide copy/terminology, CSS custom properties provide appearance.
- * No language pack, skin, storage or application router is imported here.
+ * A removable view. Host provides chart/calculation/detail adapters; CSS custom
+ * properties provide appearance. No storage or application router is imported here.
  */
-export function createTransitTimeline({ root, host, messages, locale = 'en-GB', label }) {
-  const t = translator(messages);
-  const name = label || (row => row.kind === 'center' ? row.name
-    : row.kind === 'channel' ? `${row.id} · ${row.name}` : `${t('gate')} ${row.id} · ${row.name}`);
+export function createTransitTimeline({ root, host }) {
+  const locale = 'en-GB';
+  const name = row => row.kind === 'center' ? row.name
+    : row.kind === 'channel' ? `${row.id} · ${row.name}` : `${t('gate')} ${row.id} · ${row.name}`;
   const client = createTimelineClient();
   const events = new AbortController();
   let selected = Math.floor(Date.now() / 1000) * 1000;
@@ -125,7 +124,7 @@ export function createTransitTimeline({ root, host, messages, locale = 'en-GB', 
         <details class="tl-legend-disclosure"><summary>${esc(t('legend'))}</summary><div class="tl-legend">${['natal','transit','completed','both'].map(source => `<span data-source="${source}"><i></i>${esc(t(source))}</span>`).join('')}</div></details>
         <div class="tl-graph bodygraph-container"></div>
         <div class="tl-planet-column tl-transit-column bg-planets"><div class="bg-planets-head">${esc(t('transit'))}</div><div class="tl-planets" data-planets="transit"></div></div>
-        <div class="tl-planet-column tl-birth-column"><div class="tl-birth-head${locale.startsWith('en') ? ' tl-birth-head-en' : ''}"><span class="bg-planets-design"><span class="bg-planets-head">${esc(t('design'))}</span></span><span aria-hidden="true"></span><span class="bg-planets-personality"><span class="bg-planets-head">${esc(t('personality'))}</span></span></div><div class="tl-birth-planets"></div></div>
+        <div class="tl-planet-column tl-birth-column"><div class="tl-birth-head tl-birth-head-en"><span class="bg-planets-design"><span class="bg-planets-head">${esc(t('design'))}</span></span><span aria-hidden="true"></span><span class="bg-planets-personality"><span class="bg-planets-head">${esc(t('personality'))}</span></span></div><div class="tl-birth-planets"></div></div>
       </div>
       <button type="button" class="tl-mobile-controls-trigger" data-action="mobile-controls" aria-controls="tl-mobile-controls" aria-expanded="false" aria-label="${esc(t('mobileControls'))}" title="${esc(t('mobileControls'))}"><span aria-hidden="true">☷</span></button>
       <div class="tl-mobile-controls-panel" id="tl-mobile-controls" hidden></div>
