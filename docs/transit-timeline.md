@@ -10,7 +10,7 @@ The range menu controls the **complete calculated range**, independently of view
 
 | Preset | Calculated range |
 | --- | --- |
-| 24 hours | 12 hours before and after the selected instant |
+| 24 hours | The selected local date, midnight to midnight |
 | 3 days | Yesterday, the selected local date, and tomorrow |
 | 7 days | Three local dates before the selected date through three dates after it |
 | 28 days | Fourteen local dates before the selected date through thirteen dates after it |
@@ -60,20 +60,18 @@ The UI is English only (`messages.js`) and uses the app's `esc()` and transit CS
 
 ## Development and validation
 
-Use Node 20+ and install the locked dependencies with `npm ci`. No sibling checkout is required. The existing install patch preserves seconds in NatalEngine 1.6.0.
+Install with `npm ci`. Timeline unit tests run with the rest under `npm test`.
 
 ```sh
-npm run test:timeline
+npm test
 npm run build
 npm run dev -- --host 127.0.0.1 --port 5173 --strictPort
 ```
 
-In another terminal, with Google Chrome installed:
+In another terminal, with Chromium or Chrome installed (`CHROME_PATH` overrides `/usr/bin/chromium`):
 
 ```sh
 E2E_URL=http://127.0.0.1:5173 npm run e2e:timeline
 ```
 
-`CHROME_PATH` overrides the browser executable; `CHROME_CHANNEL` chooses a Playwright channel. CI installs Playwright Chromium and uses `CHROME_CHANNEL=chromium`. Set `SKIP_TIMELINE_YEAR=1` to omit the two slower full-year browser calculations; the default run includes them.
-
-The dedicated checks cover interval boundaries, cancellation, calendar days and DST, stable rows, source highlights, gestures, details, desktop/mobile layout, and panel-contained progress. They use synthetic chart fixtures and do not call geocoding services. The repository's broader `npm test` and `npm run e2e` checks remain separate and include external-service behavior.
+The smoke test covers the default range, the engine-matching planet column, keyboard stepping, bar details, the 24-hour range across a timezone change, the 1-year calculation time, Transit only, and the phone layout. It uses URL chart data and does not call geocoding services.
