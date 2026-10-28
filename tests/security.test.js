@@ -10,10 +10,10 @@ import { readFileSync } from 'node:fs';
 import { authBaseURL, httpsRedirect, rejectTokenWithoutVerifier, scopeTokenProps, withSecurityHeaders, CSP } from '../worker/security.js';
 import { classifyChange } from '../worker/sync.js';
 
-test('better-auth baseURL is never an http production origin', () => {
+test('better-auth baseURL is always https outside local dev, on the host in use', () => {
   assert.equal(authBaseURL(new URL('http://openhumandesign.com/api/auth/x')), 'https://openhumandesign.com');
   assert.equal(authBaseURL(new URL('https://www.openhumandesign.com/')), 'https://www.openhumandesign.com');
-  assert.equal(authBaseURL(new URL('https://open-human-design.someone.workers.dev/')), 'https://openhumandesign.com');
+  assert.equal(authBaseURL(new URL('http://open-human-design.someone.workers.dev/')), 'https://open-human-design.someone.workers.dev');
   assert.equal(authBaseURL(new URL('http://127.0.0.1:8796/')), 'http://127.0.0.1:8796');
 });
 
@@ -58,6 +58,8 @@ test('access tokens carry their scopes; scope-less (pre-enforcement) grants get 
   assert.deepEqual(scopeTokenProps({ props, requestedScope: ['charts:read', 'charts:write'] }).accessTokenProps,
     { ...props, scope: ['charts:read', 'charts:write'] });
   assert.deepEqual(scopeTokenProps({ props, requestedScope: [] }).accessTokenProps.scope, ['charts:read']);
+  // a pre-enforcement grant that recorded someone else's scope names
+  assert.deepEqual(scopeTokenProps({ props, requestedScope: ['mcp'] }).accessTokenProps.scope, ['charts:read']);
 });
 
 test('sync: tombstones need only an id + time, junk is rejected', () => {

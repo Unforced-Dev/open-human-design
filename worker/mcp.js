@@ -38,6 +38,7 @@ import {
   GATES,
   renderBodygraphSVG
 } from 'natalengine';
+import { tombstone } from './sync.js';
 
 // ---------------------------------------------------------------------------
 // BirthInput resolution
@@ -85,7 +86,7 @@ async function lookupPerson(ctx, name) {
     `SELECT * FROM people WHERE user_id = ?1 AND deleted_at IS NULL AND ai_access = 1 AND name = ?2 COLLATE NOCASE`
   ).bind(ctx.userId, name).all();
 
-  const allowed = results.filter(r => r.ai_access);
+  const allowed = results.filter(r => r.ai_access); // the SQL filters too; belt and braces
   if (!allowed.length) {
     throw new Error(`No saved person named "${name}" that your AI can see. Use list_people to see who is available (people with AI access off stay hidden; the user can turn it on in the app), or save_person to add them.`);
   }
@@ -751,18 +752,18 @@ const PERSONAL_TOOLS = [
       const now = new Date().toISOString();
 
       if (id) {
+        // Hidden people (AI access off) are invisible here too.
         const row = await ctx.env.DB.prepare(
-          'SELECT name FROM people WHERE user_id = ?1 AND id = ?2 AND deleted_at IS NULL'
+          'SELECT name FROM people WHERE user_id = ?1 AND id = ?2 AND deleted_at IS NULL AND ai_access = 1'
         ).bind(ctx.userId, id).first();
         if (!row) throw new Error(`No saved person with id "${id}". Use list_people to get current ids.`);
-        await ctx.env.DB.prepare('UPDATE people SET deleted_at = ?1, updated_at = ?1 WHERE user_id = ?2 AND id = ?3')
-          .bind(now, ctx.userId, id).run();
+        await tombstone(ctx.env.DB, ctx.userId, id, now);
         return json({ deleted: row.name, id });
       }
 
       if (!name) throw new Error('Pass an id (preferred) or a name.');
       const { results } = await ctx.env.DB.prepare(
-        'SELECT id, name, birth_date, loc_name FROM people WHERE user_id = ?1 AND name = ?2 COLLATE NOCASE AND deleted_at IS NULL'
+        'SELECT id, name, birth_date, loc_name FROM people WHERE user_id = ?1 AND name = ?2 COLLATE NOCASE AND deleted_at IS NULL AND ai_access = 1'
       ).bind(ctx.userId, name).all();
 
       if (!results.length) throw new Error(`No saved person named "${name}".`);
@@ -772,8 +773,7 @@ const PERSONAL_TOOLS = [
           candidates: results.map(r => ({ id: r.id, name: r.name, birthDate: r.birth_date, place: r.loc_name || null }))
         });
       }
-      await ctx.env.DB.prepare('UPDATE people SET deleted_at = ?1, updated_at = ?1 WHERE user_id = ?2 AND id = ?3')
-        .bind(now, ctx.userId, results[0].id).run();
+      await tombstone(ctx.env.DB, ctx.userId, results[0].id, now);
       return json({ deleted: results[0].name, id: results[0].id });
     }
   }

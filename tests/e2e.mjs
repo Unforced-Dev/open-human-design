@@ -319,6 +319,18 @@ await check('shared person retained for comparison (P1-11)', async () => {
   await ctx.close();
 });
 
+// --- Viewing someone's shared chart (unsaved): they aren't offered as a match for themselves ---
+await check('a shared chart on screen is not offered to compare with itself', async () => {
+  const ctx = await browser.newContext();
+  const p4 = await ctx.newPage();
+  await p4.goto(`${BASE}?d=1980-05-10&t=09:00&tz=2&n=SoloGuest`);
+  await p4.waitForSelector('#chart-view:not(.hidden)', { timeout: 5000 });
+  await p4.click('.nav-link[data-view="connection"]');
+  const opts = await p4.textContent('#conn-person');
+  if (/SoloGuest/.test(opts)) throw new Error('offered to compare SoloGuest with SoloGuest: ' + opts);
+  await ctx.close();
+});
+
 // --- Dyad: a "compare with me" invite walks the recipient to the comparison ---
 // Name is optional on the form, so run it both ways: a blank name used to drop
 // the guest (both ids undefined → "same person") and show nothing.

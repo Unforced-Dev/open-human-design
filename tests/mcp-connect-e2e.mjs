@@ -113,7 +113,10 @@ await page.click('button:has-text("Connect")');
 for (let i = 0; i < 50 && !code; i++) await new Promise(r => setTimeout(r, 100));
 check('Connect redirects back to the AI app with a code', !!code);
 check('no page errors or CSP violations in the browser', !pageErrors.length, pageErrors.join(' | '));
-await browser.close();
+// The person's app session (same browser) — used below to add a hidden person and read back sync.
+const syncApi = (changes) => ctx.request.post(`${BASE}/api/sync`, { headers: { origin: BASE }, data: { since: '', changes } }).then(r => r.json());
+const now = new Date().toISOString();
+await syncApi([{ id: 'hidden-1', name: 'Hidden Ex', birthDate: '1980-02-02', birthTime: '10:00', aiAccess: false, updatedAt: now }]);
 
 // --- back in the AI app: finish OAuth, then use the tools -------------------
 await transport.finishAuth(code);
@@ -132,7 +135,21 @@ check('save_person works with the write scope', !save.isError, save.content?.[0]
 const chart = await client.callTool({ name: 'compute_chart', arguments: { birth: 'E2E Mom', image: 'none' } });
 const out = JSON.parse(chart.content?.[0]?.text || '{}');
 check('compute_chart by saved name', !chart.isError && out.person === 'E2E Mom' && !!out.humanDesign?.type, chart.content?.[0]?.text?.slice(0, 160));
+
+// Hidden people (AI access off) stay invisible, even to delete_person.
+const hiddenDel = await client.callTool({ name: 'delete_person', arguments: { name: 'Hidden Ex' } });
+const hiddenById = await client.callTool({ name: 'delete_person', arguments: { id: 'hidden-1' } });
+check('delete_person cannot see or delete a hidden person', hiddenDel.isError && hiddenById.isError,
+  `${hiddenDel.content?.[0]?.text?.slice(0, 100)} / ${hiddenById.content?.[0]?.text?.slice(0, 100)}`);
+const del = await client.callTool({ name: 'delete_person', arguments: { name: 'E2E Mom' } });
+const pulled = (await syncApi([])).changes || [];
+const momRow = pulled.find(c => c.deletedAt && !pulled.some(o => o.id === c.id && !o.deletedAt));
+const hiddenRow = pulled.find(c => c.id === 'hidden-1');
+check('an AI delete leaves a bare tombstone (no birth data) and spares the hidden person',
+  !del.isError && momRow && !momRow.name && !momRow.birthDate && hiddenRow && !hiddenRow.deletedAt,
+  JSON.stringify({ del: del.content?.[0]?.text?.slice(0, 80), momRow, hidden: hiddenRow?.name }));
 await client.close();
+await browser.close();
 
 console.log(failures ? `\n${failures} FAILED` : '\nConnect flow passed end to end');
 process.exit(failures ? 1 : 0);

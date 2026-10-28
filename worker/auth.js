@@ -16,6 +16,7 @@ import { betterAuth } from 'better-auth';
 import { magicLink } from 'better-auth/plugins';
 import { D1Dialect } from 'kysely-d1';
 import { authBaseURL } from './security.js';
+import { parkPendingAuthorize } from './oauth-ui.js';
 
 async function sendMagicLinkEmail(env, { email, url }) {
   try {
@@ -92,11 +93,12 @@ export function createAuth(env, baseURL) {
       magicLink({
         // 15 min — interstitial adds a human step, so give comfortable slack
         expiresIn: 900,
-        sendMagicLink: async ({ email, url }) => {
+        sendMagicLink: async ({ email, url, metadata }) => {
           // Email the styled interstitial (/auth/verify), not the raw
           // endpoint: mail scanners prefetch links and would consume the
           // single-use token before the human clicks.
-          const interstitial = url.replace('/api/auth/magic-link/verify', '/auth/verify');
+          const link = await parkPendingAuthorize(env, url, metadata);
+          const interstitial = link.replace('/api/auth/magic-link/verify', '/auth/verify');
           return sendMagicLinkEmail(env, { email, url: interstitial });
         }
       })

@@ -21,10 +21,10 @@ import OAuthProvider from '@cloudflare/workers-oauth-provider';
 import { handleMcpRequest } from './mcp.js';
 import { createAuth, getSession } from './auth.js';
 import { handleSync } from './sync.js';
-import { handleAuthorize, verifyInterstitial, SCOPES } from './oauth-ui.js';
+import { handleAuthorize, verifyInterstitial } from './oauth-ui.js';
 import { handleOgImage, handleChartSvg, rewriteShareMeta } from './og.js';
 import { handleSeoPage, handleSitemap, handleRobots } from './seo.js';
-import { authBaseURL, httpsRedirect, rejectTokenWithoutVerifier, scopeTokenProps, withSecurityHeaders } from './security.js';
+import { authBaseURL, httpsRedirect, rejectTokenWithoutVerifier, scopeTokenProps, withSecurityHeaders, SCOPES } from './security.js';
 
 const MCP_CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -100,7 +100,7 @@ const defaultHandler = {
         if (origin && origin !== url.origin && !API_ORIGINS.has(origin)) {
           return Response.json({ error: 'bad origin' }, { status: 403 });
         }
-        if (!(request.headers.get('content-type') || '').includes('application/json')) {
+        if ((request.headers.get('content-type') || '').split(';')[0].trim().toLowerCase() !== 'application/json') {
           return withHeaders(Response.json({ error: 'expected application/json' }, { status: 415 }), cors);
         }
         const session = await getSession(env, request);

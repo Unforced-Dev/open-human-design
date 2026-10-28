@@ -11,15 +11,19 @@
  */
 
 export const PROD_HOSTS = new Set(['openhumandesign.com', 'www.openhumandesign.com']);
+export const SCOPES = ['charts:read', 'charts:write'];
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
 
 /**
- * better-auth baseURL, pinned: never taken from an http request. Local dev
- * keeps its own origin; every other host (prod, www, workers.dev) is https.
+ * better-auth baseURL, pinned to https: never taken from an http request, so
+ * session cookies are always Secure and magic links always https. The host
+ * stays the one the request arrived on (Cloudflare only routes our own
+ * domains and workers.dev here), so www and workers.dev keep working.
+ * Local dev keeps its own origin.
  */
 export function authBaseURL(url) {
   if (LOCAL_HOSTS.has(url.hostname)) return url.origin;
-  return `https://${PROD_HOSTS.has(url.hostname) ? url.hostname : 'openhumandesign.com'}`;
+  return `https://${url.host}`;
 }
 
 export function httpsRedirect(url) {
@@ -68,7 +72,8 @@ export function withSecurityHeaders(response) {
  * since enforcement always hold a scope; an empty one predates it: read-only.
  */
 export function scopeTokenProps({ props, requestedScope }) {
-  return { accessTokenProps: { ...props, scope: requestedScope?.length ? requestedScope : ['charts:read'] } };
+  const scope = (requestedScope || []).filter(s => SCOPES.includes(s));
+  return { accessTokenProps: { ...props, scope: scope.length ? scope : ['charts:read'] } };
 }
 
 /** 400 for an authorization_code exchange with no code_verifier, else null. */

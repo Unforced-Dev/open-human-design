@@ -1,9 +1,9 @@
 /**
  * OAuth authorize flow for the personal MCP connector (/mcp).
  *
- * GET /authorize  → no session: the OAuth request is parked server-side under
- *                   a short id; magic-link sign-in page returns to
- *                   /authorize?pending=<id>
+ * GET /authorize  → no session: magic-link sign-in page. When the email goes
+ *                   out (rate-limited), the OAuth request is parked in KV under
+ *                   a short id and the link returns to /authorize?pending=<id>
  *                 → session: consent page for the requesting MCP client
  * GET /authorize?pending=<id> → back to the parked request
  * POST /authorize → completeAuthorization → redirect back to the client
@@ -17,16 +17,33 @@
  */
 
 import { getSession } from './auth.js';
+import { SCOPES } from './security.js';
 
 const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-export const SCOPES = ['charts:read', 'charts:write'];
 const SCOPE_TEXT = {
   'charts:read': "See saved people you've given <em>AI access</em>",
   'charts:write': 'Save new people, and remove saved people, when you ask it to'
 };
 const PENDING_TTL = 900; // 15 min, the magic link's lifetime
 const pendingKey = (id) => `ohd:pending-authorize:${id}`;
+
+/**
+ * Called from better-auth's sendMagicLink, i.e. only for a sign-in request
+ * that passed the per-IP rate limit: park the OAuth query (sent by the
+ * sign-in page as metadata) under a short id and point the link's
+ * callbackURL at /authorize?pending=<id>. Returns the link to email.
+ */
+export async function parkPendingAuthorize(env, link, metadata) {
+  const qs = metadata?.oauthQuery;
+  if (typeof qs !== 'string' || !qs.startsWith('?') || qs.length > 4096) return link;
+  const id = crypto.randomUUID().replace(/-/g, '');
+  await env.OAUTH_KV.put(pendingKey(id), qs, { expirationTtl: PENDING_TTL });
+  const url = new URL(link);
+  url.searchParams.set('callbackURL', `/authorize?pending=${id}`);
+  return url.toString();
+}
+
 // Hosts we know are the AI apps people connect; anything else gets a warning.
 const KNOWN_CLIENT_HOSTS = new Set(['claude.ai', 'claude.com', 'chatgpt.com', 'chat.openai.com']);
 
@@ -58,7 +75,7 @@ const newNonce = () => btoa(String.fromCharCode(...crypto.getRandomValues(new Ui
 // JSON inside <script>: never let a value close the tag.
 const scriptJson = (v) => JSON.stringify(v).replace(/</g, '\\u003c');
 
-function signInPage(returnUrl) {
+function signInPage(oauthQuery) {
   const nonce = newNonce();
   return PAGE('Sign in', `
     <h1>Sign in to connect your AI</h1>
@@ -81,7 +98,7 @@ function signInPage(returnUrl) {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
             credentials: 'include',
-            body: JSON.stringify({ email: document.getElementById('email').value, callbackURL: ${scriptJson(returnUrl)} })
+            body: JSON.stringify({ email: document.getElementById('email').value, callbackURL: '/authorize', metadata: { oauthQuery: ${scriptJson(oauthQuery)} } })
           });
         } catch {}
         if (res && res.ok) { ok.style.display = 'block'; return; }
@@ -123,10 +140,12 @@ const nothingToConnect = (detail = '') => PAGE('Connect', `<h1>Nothing to connec
         assistant sends you here. To connect yours, copy the connector URL from the app's
         Sync panel into your AI's connector settings.</p>${detail ? `<p class="muted">${esc(detail)}</p>` : ''}`);
 
-// Loopback redirects (desktop / CLI clients) can't hand a code to anyone remote.
+// Loopback http(s) redirects (desktop / CLI clients) can't hand a code to
+// anyone remote. Custom schemes can be claimed by any local app: not these.
 function isLoopback(redirectUri) {
   try {
-    return ['localhost', '127.0.0.1', '[::1]'].includes(new URL(redirectUri).hostname);
+    const u = new URL(redirectUri);
+    return /^https?:$/.test(u.protocol) && ['localhost', '127.0.0.1', '[::1]'].includes(u.hostname);
   } catch {
     return false;
   }
@@ -203,12 +222,9 @@ export async function handleAuthorize(request, env) {
     if (pkce) return nothingToConnect(pkce);
 
     const session = await getSession(env, request);
-    if (!session) {
-      // Park the request; only its id travels through the email link.
-      const id = crypto.randomUUID().replace(/-/g, '');
-      await env.OAUTH_KV.put(pendingKey(id), url.search, { expirationTtl: PENDING_TTL });
-      return signInPage(`/authorize?pending=${id}`);
-    }
+    // Signed out: the request is parked when the sign-in email goes out
+    // (parkPendingAuthorize); only its id travels through the link.
+    if (!session) return signInPage(url.search);
     return consentPage(client.clientName || 'AI assistant', session.user.email, url.search,
       oauthReqInfo.redirectUri, grantedScopes(oauthReqInfo.scope));
   }

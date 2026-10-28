@@ -10,17 +10,28 @@
  * propagate like edits and never resurrect.
  *
  * Every field is validated and length-capped. A tombstone stores only its
- * id and time (the person's details are cleared) and only for a row the
- * server already holds: a delete for an id it never had has nothing to
- * propagate. Live rows are capped at MAX_PEOPLE_FREE; tombstones at the same
- * number again, oldest dropped first, so one account can't fill D1.
+ * id and time (the person's details are cleared, here and in the MCP
+ * delete_person) and only for a row the server already holds: a delete for
+ * an id it never had has nothing to propagate. Live rows are capped at
+ * MAX_PEOPLE_FREE and all rows at MAX_ROWS, so one account can't fill D1.
+ * Tombstones are never hard-deleted (that would let old devices resurrect).
  */
 
 // Generous while we grow — proper tier gating comes with payments later
 // (decision 2026-06-06: make it all work for anyone with an account).
 const MAX_PEOPLE_FREE = 100;
-const MAX_ROWS = MAX_PEOPLE_FREE * 2; // live + tombstones
+const MAX_ROWS = MAX_PEOPLE_FREE * 10; // live + tombstones (~100 B each once cleared)
 const MAX_BODY_BYTES = 256 * 1024;
+
+/** Turn a row into a tombstone: keep id + time, clear everything personal. */
+export function tombstone(db, userId, id, now) {
+  return db.prepare(`
+    UPDATE people SET name = '', birth_date = '', birth_time = '', time_unknown = 0,
+      loc_lat = NULL, loc_lon = NULL, loc_timezone = NULL, loc_iana = NULL, loc_name = NULL,
+      ai_access = 0, updated_at = ?1, deleted_at = ?1
+    WHERE user_id = ?2 AND id = ?3
+  `).bind(now, userId, id).run();
+}
 
 function rowToWire(r) {
   if (r.deleted_at) return { id: r.id, updatedAt: r.updated_at, deletedAt: r.deleted_at };
@@ -86,6 +97,9 @@ export async function handleSync(env, session, request) {
     if (text.length > MAX_BODY_BYTES) return Response.json({ error: 'request too large' }, { status: 413 });
     body = JSON.parse(text);
   } catch {
+    body = null;
+  }
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
     return Response.json({ error: 'invalid JSON' }, { status: 400 });
   }
 
@@ -93,9 +107,10 @@ export async function handleSync(env, session, request) {
   const since = typeof body.since === 'string' ? body.since.slice(0, 40) : '';
   const changes = Array.isArray(body.changes) ? body.changes.slice(0, 200) : [];
   const now = new Date().toISOString();
-  const count = async (where) => (await env.DB
-    .prepare(`SELECT COUNT(*) AS cnt FROM people WHERE user_id = ?1 AND ${where}`)
-    .bind(userId).first()).cnt;
+  const counts = await env.DB
+    .prepare('SELECT COUNT(*) AS total, COALESCE(SUM(deleted_at IS NULL), 0) AS live FROM people WHERE user_id = ?1')
+    .bind(userId).first();
+  let { total, live } = counts;
 
   for (const c of changes) {
     const kind = classifyChange(c);
@@ -110,25 +125,16 @@ export async function handleSync(env, session, request) {
 
     if (kind === 'tombstone') {
       if (!existing) continue; // never synced, nothing to propagate
-      await env.DB.prepare(`
-        UPDATE people SET name = '', birth_date = '', birth_time = '', time_unknown = 0,
-          loc_lat = NULL, loc_lon = NULL, loc_timezone = NULL, loc_iana = NULL, loc_name = NULL,
-          ai_access = 0, updated_at = ?1, deleted_at = ?1
-        WHERE user_id = ?2 AND id = ?3
-      `).bind(now, userId, c.id).run();
+      await tombstone(env.DB, userId, c.id, now);
       continue;
     }
 
     if (!existing) {
-      // Free-tier cap counts live (non-tombstoned) rows
-      if (await count('deleted_at IS NULL') >= MAX_PEOPLE_FREE) continue; // silently skipped; pull won't echo it back
-      // Bound tombstones too: make room by dropping the oldest one.
-      if (await count('1 = 1') >= MAX_ROWS) {
-        await env.DB.prepare(`
-          DELETE FROM people WHERE user_id = ?1 AND id = (
-            SELECT id FROM people WHERE user_id = ?1 AND deleted_at IS NOT NULL ORDER BY deleted_at LIMIT 1)
-        `).bind(userId).run();
-      }
+      // Free-tier cap counts live (non-tombstoned) rows; all rows are bounded
+      // too. Silently skipped; pull won't echo it back.
+      if (live >= MAX_PEOPLE_FREE || total >= MAX_ROWS) continue;
+      live++;
+      total++;
     }
 
     await env.DB.prepare(`
