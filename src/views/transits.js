@@ -8,7 +8,7 @@ import { renderBodygraph } from '../bodygraph.js';
 import { esc } from '../lib/format.js';
 
 const plural2 = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
-import { getCurrentChart, showGateDetail } from './chart.js';
+import { getCurrentChart, showTransitDetail } from './chart.js';
 
 export function setupTransitView() {
   const dateInput = document.getElementById('transit-date');
@@ -37,11 +37,13 @@ export function renderTransits() {
   // Bodygraph with transit rings
   const graphContainer = document.getElementById('transit-bodygraph');
   if (graphContainer) {
-    renderBodygraph(graphContainer, current.chart, {
+    const context = { transitGates: overlay.transitGates };
+    context.api = renderBodygraph(graphContainer, current.chart, {
       planetColumns: false,
       animate: false,
       transitGates,
-      onGateClick: showGateDetail
+      onGateClick: gate => showTransitDetail('gate', gate, context),
+      onCenterClick: center => showTransitDetail('center', center, context)
     });
   }
 

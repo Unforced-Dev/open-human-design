@@ -23,6 +23,7 @@ function humanList(arr) {
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
 import { renderBodygraph, PLANET_ORDER, PLANET_GLYPHS, PLANET_NAMES } from '../bodygraph.js';
+import { openDetailDialog, closeDetailDialog } from '../lib/detail-dialog.js';
 import { esc, formatBirth } from '../lib/format.js';
 import { birthToParams, connectionUrl } from '../lib/share.js';
 
@@ -30,6 +31,8 @@ let current = null; // { birth, chart, geneKeys }
 let bodygraphApi = null;
 let detailHistory = []; // stack of { kind, id } for modal back-navigation
 let currentDetail = null;
+let detailContext = null;
+const detailGraph = () => detailContext?.api || bodygraphApi;
 
 const TYPE_COLORS = {
   'Generator': 'var(--generator)',
@@ -49,6 +52,7 @@ const TYPE_PLAIN = {
 };
 
 export function renderChartView(data, { onShare } = {}) {
+  closeDetailDialog();
   current = data;
   const { birth, chart } = data;
 
@@ -133,15 +137,6 @@ export function renderChartView(data, { onShare } = {}) {
   renderFoundation(chart, data.sensitivity, birth);
   const activeTab = document.querySelector('.panel-tab.active');
   renderPanelContent(activeTab ? activeTab.dataset.panel : 'centers');
-
-  // --- Modal close: backdrop click + ESC ---
-  const detail = document.getElementById('gate-detail');
-  detail.addEventListener('click', (e) => {
-    if (e.target === detail) closeDetail();
-  });
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !detail.classList.contains('hidden')) closeDetail();
-  });
 }
 
 export function rerenderBodygraph(transitGates = null) {
@@ -177,8 +172,8 @@ function highlightPanelRows(sel) {
 // Forward direction: hovering a data row lights its gate(s) on the bodygraph.
 // Mouse/pen only — on touch the tap opens the detail (which pins the selection).
 function wireRowHover(el, gateNum) {
-  el.addEventListener('pointerenter', (e) => { if (e.pointerType !== 'touch') bodygraphApi?.highlightGate?.(gateNum); });
-  el.addEventListener('pointerleave', (e) => { if (e.pointerType !== 'touch') bodygraphApi?.highlightGate?.(null); });
+  el.addEventListener('pointerenter', (e) => { if (e.pointerType !== 'touch') detailGraph()?.highlightGate?.(gateNum); });
+  el.addEventListener('pointerleave', (e) => { if (e.pointerType !== 'touch') detailGraph()?.highlightGate?.(null); });
 }
 
 function wireCenterHover(el, centerKey) {
@@ -289,7 +284,10 @@ function gateActiveLines(gateNum, chart) {
 /** The interpretive body of the gate card, in the currently selected tradition. */
 function renderLens(gateNum) {
   const chart = current.chart;
-  const lines = gateActiveLines(gateNum, chart);
+  const lines = [...new Set([
+    ...gateActiveLines(gateNum, chart),
+    ...Object.values(detailContext?.transitGates || {}).filter(g => g?.gate === gateNum).map(g => g.line)
+  ])].sort((a, b) => a - b);
 
   if (currentLens === 'iching') {
     const hx = HEXAGRAM_DESCRIPTIONS[gateNum];
@@ -324,18 +322,23 @@ function renderLens(gateNum) {
     ${lineHtml ? `<div class="gate-detail-lines">${lineHtml}</div>` : ''}`;
 }
 
-function closeDetail() {
-  const detail = document.getElementById('gate-detail');
-  detail.classList.add('hidden');
-  document.body.classList.remove('modal-open');
-  bodygraphApi?.setPinned?.(null);
+function resetDetail() {
+  detailGraph()?.setPinned?.(null);
   detailHistory = [];
   currentDetail = null;
+  detailContext = null;
+}
+
+export function showTransitDetail(kind, id, context) {
+  closeDetailDialog();
+  detailContext = context;
+  if (kind === 'gate') showGateDetail(id);
+  else showCenterDetail(id);
 }
 
 function goBack() {
   const prev = detailHistory.pop();
-  if (!prev) return closeDetail();
+  if (!prev) return closeDetailDialog();
   if (prev.kind === 'gate') showGateDetail(prev.id, false);
   else showCenterDetail(prev.id, false);
 }
@@ -388,6 +391,10 @@ export function showGateDetail(gateNum, pushHistory = true) {
     if (g?.gate === gateNum) acts.push(`<span class="bg-tt-personality">${PLANET_GLYPHS[planet]} Personality ${PLANET_NAMES[planet]} — ${gateNum}.${g.line}${lineTag(g.line)}</span>`);
   }
 
+  const transitActs = Object.entries(detailContext?.transitGates || {})
+    .filter(([, g]) => g?.gate === gateNum)
+    .map(([planet, g]) => `<span>${PLANET_GLYPHS[planet] || ''} Transit ${esc(PLANET_NAMES[planet] || planet)} — ${gateNum}.${g.line}${lineTag(g.line)}</span>`);
+
   const inChannels = (chart.channels || []).filter(ch => ch.gates.includes(gateNum));
   const channelHtml = inChannels.map(ch => {
     const key = ch.gates.join('-');
@@ -408,7 +415,8 @@ export function showGateDetail(gateNum, pushHistory = true) {
       <div class="gate-detail-body">
         <div class="detail-label">Gate ${gateNum}</div>
         <div class="detail-name">${gate ? esc(gate.name) : 'Gate ' + gateNum}</div>
-        ${acts.length ? `<div class="gate-detail-acts">${acts.join('<br>')}</div>` : '<p class="gate-detail-inactive">Not activated in this chart.</p>'}
+        ${acts.length ? `<div class="gate-detail-acts">${acts.join('<br>')}</div>` : '<p class="gate-detail-inactive">Not activated in your natal chart.</p>'}
+        ${detailContext ? `<div class="gate-detail-transits"><div class="detail-label">Transit activations</div>${transitActs.length ? transitActs.join('<br>') : 'Not activated by the selected transit.'}</div>` : ''}
         <div class="lens-switch">${LENSES.map(([k, label]) => `<button type="button" data-lens="${k}" class="${k === currentLens ? 'active' : ''}">${label}</button>`).join('')}</div>
         <div id="lens-content">${renderLens(gateNum)}</div>
         ${isActive && channelHtml ? channelHtml : ''}
@@ -416,12 +424,10 @@ export function showGateDetail(gateNum, pushHistory = true) {
       </div>
     </div>
   `;
-  detail.classList.remove('hidden');
-  document.body.classList.add('modal-open');
+  openDetailDialog(detail, resetDetail);
   fitSheetHeight(detail.querySelector('.gate-detail-card'), prevH);
-  bodygraphApi?.setPinned?.({ kind: 'gate', id: gateNum });
+  detailGraph()?.setPinned?.({ kind: 'gate', id: gateNum });
   detail.querySelector('.gate-detail-back')?.addEventListener('click', goBack);
-  detail.querySelector('.gate-detail-close').addEventListener('click', closeDetail);
   detail.querySelectorAll('.lens-switch button').forEach(btn => btn.addEventListener('click', () => {
     currentLens = btn.dataset.lens;
     detail.querySelectorAll('.lens-switch button').forEach(b => b.classList.toggle('active', b.dataset.lens === currentLens));
@@ -488,6 +494,7 @@ export function showCenterDetail(centerKey, pushHistory = true) {
       <div class="gate-detail-body">
         <div class="detail-label">${esc(c.name)}</div>
         <div class="detail-name">${esc(c.theme || c.name)}</div>
+        ${detailContext ? '<p class="lens-note">Natal center · dashed rings on the graph mark the selected transit gates.</p>' : ''}
         <div class="center-detail-head">
           <span class="center-status ${status}">${statusLabel}</span>
           <span class="center-detail-theme">${esc(c.theme || '')}${c.biological ? ` · ${esc(c.biological)}` : ''}</span>
@@ -502,12 +509,10 @@ export function showCenterDetail(centerKey, pushHistory = true) {
       </div>
     </div>
   `;
-  detail.classList.remove('hidden');
-  document.body.classList.add('modal-open');
+  openDetailDialog(detail, resetDetail);
   fitSheetHeight(detail.querySelector('.gate-detail-card'), prevH);
-  bodygraphApi?.setPinned?.({ kind: 'center', id: centerKey });
+  detailGraph()?.setPinned?.({ kind: 'center', id: centerKey });
   detail.querySelector('.gate-detail-back')?.addEventListener('click', goBack);
-  detail.querySelector('.gate-detail-close').addEventListener('click', closeDetail);
   detail.querySelectorAll('.gate-chip[data-gate]').forEach(btn => {
     btn.addEventListener('click', () => showGateDetail(parseInt(btn.dataset.gate)));
     wireRowHover(btn, parseInt(btn.dataset.gate));
