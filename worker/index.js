@@ -24,7 +24,7 @@ import { handleSync } from './sync.js';
 import { handleAuthorize, verifyInterstitial, SCOPES } from './oauth-ui.js';
 import { handleOgImage, handleChartSvg, rewriteShareMeta } from './og.js';
 import { handleSeoPage, handleSitemap, handleRobots } from './seo.js';
-import { authBaseURL, httpsRedirect, rejectTokenWithoutVerifier, withSecurityHeaders } from './security.js';
+import { authBaseURL, httpsRedirect, rejectTokenWithoutVerifier, scopeTokenProps, withSecurityHeaders } from './security.js';
 
 const MCP_CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -150,12 +150,9 @@ const oauthProvider = new OAuthProvider({
   // OAuth 2.1: S256 only. Without a code_challenge the method defaults to
   // "plain", so this also rejects authorize requests that skip PKCE.
   allowPlainPKCE: false,
-  // Each access token carries the scopes it was issued with (a client may
-  // downscope at /oauth/token), so the MCP tools can enforce them. Grants made
-  // here always hold a scope; an empty one predates enforcement: read-only.
-  tokenExchangeCallback: ({ props, requestedScope }) => ({
-    accessTokenProps: { ...props, scope: requestedScope.length ? requestedScope : ['charts:read'] }
-  })
+  // Each access token carries the scopes it was issued with, so the MCP
+  // tools can enforce them (worker/security.js).
+  tokenExchangeCallback: scopeTokenProps
 });
 
 export default {

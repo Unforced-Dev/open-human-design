@@ -7,7 +7,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { authBaseURL, httpsRedirect, rejectTokenWithoutVerifier, withSecurityHeaders, CSP } from '../worker/security.js';
+import { authBaseURL, httpsRedirect, rejectTokenWithoutVerifier, scopeTokenProps, withSecurityHeaders, CSP } from '../worker/security.js';
 import { classifyChange } from '../worker/sync.js';
 
 test('better-auth baseURL is never an http production origin', () => {
@@ -51,6 +51,13 @@ test('authorization_code exchange without code_verifier is refused', async () =>
   assert.equal((await r.json()).error, 'invalid_request');
   assert.equal(await rejectTokenWithoutVerifier(tokenReq({ grant_type: 'authorization_code', code: 'c', code_verifier: 'v' })), null);
   assert.equal(await rejectTokenWithoutVerifier(tokenReq({ grant_type: 'refresh_token', refresh_token: 'r' })), null);
+});
+
+test('access tokens carry their scopes; scope-less (pre-enforcement) grants get read-only', () => {
+  const props = { userId: 'u', email: 'e' };
+  assert.deepEqual(scopeTokenProps({ props, requestedScope: ['charts:read', 'charts:write'] }).accessTokenProps,
+    { ...props, scope: ['charts:read', 'charts:write'] });
+  assert.deepEqual(scopeTokenProps({ props, requestedScope: [] }).accessTokenProps.scope, ['charts:read']);
 });
 
 test('sync: tombstones need only an id + time, junk is rejected', () => {

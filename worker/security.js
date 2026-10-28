@@ -62,6 +62,15 @@ export function withSecurityHeaders(response) {
   return out;
 }
 
+/**
+ * OAuthProvider tokenExchangeCallback: copy the token's scopes (a client may
+ * downscope at /oauth/token) into its props for the MCP tools. Grants made
+ * since enforcement always hold a scope; an empty one predates it: read-only.
+ */
+export function scopeTokenProps({ props, requestedScope }) {
+  return { accessTokenProps: { ...props, scope: requestedScope?.length ? requestedScope : ['charts:read'] } };
+}
+
 /** 400 for an authorization_code exchange with no code_verifier, else null. */
 export async function rejectTokenWithoutVerifier(request) {
   const url = new URL(request.url);
