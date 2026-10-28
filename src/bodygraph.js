@@ -15,6 +15,7 @@
 import { GATE_PATHS, CENTER_SHAPES, GATE_CIRCLE_POSITIONS } from 'natalengine/bodygraph-data';
 import { GATES, CHANNELS } from 'natalengine';
 import { esc } from './lib/format.js';
+import { TRANSIT_SOURCE_LABELS } from './lib/transit-graph.js';
 import { INTEGRATION_SPAN, INTEGRATION_JOINED_PATHS, INTEGRATION_LOWER_BEND_PATHS, integrationSpanGates } from './lib/bodygraph-integration.js';
 
 let graphSequence = 0;
@@ -99,7 +100,7 @@ function palette() {
     centerStroke: dark ? '#5a5248' : '#c0b8ae',
     text: dark ? '#e8e4de' : '#1a1714',
     textInactive: dark ? '#6f685f' : '#a39a90',
-    transit: dark ? '#d4943a' : '#c47a2a'
+    transit: 'var(--accent)'
   };
 }
 
@@ -132,6 +133,9 @@ export function renderBodygraph(container, chart, opts = {}) {
   // instead of by personality/design. The half-channel model makes this read
   // beautifully — a two-tone channel is an electromagnetic bond.
   const composite = opts.composite || null;
+  const transit = opts.transitModel || null;
+  // SVG presentation attributes inherit the same theme tokens as the legend and badges.
+  const transitColor = 'var(--transit-source)';
 
   const personalityGates = new Map(); // gate -> [{planet, line}]
   const designGates = new Map();
@@ -152,7 +156,7 @@ export function renderBodygraph(container, chart, opts = {}) {
     gateOwner = (g) => { const a = aGates.has(g), b = bGates.has(g); return a && b ? 'both' : a ? 'a' : b ? 'b' : null; };
   }
 
-  const activeGates = composite
+  const activeGates = transit ? transit.activeGates : composite
     ? new Set([...aGates, ...bGates])
     : new Set([...personalityGates.keys(), ...designGates.keys()]);
 
@@ -160,7 +164,8 @@ export function renderBodygraph(container, chart, opts = {}) {
   const compChannels = composite
     ? CHANNELS.filter(ch => activeGates.has(ch.gates[0]) && activeGates.has(ch.gates[1]))
     : null;
-  const definedChannelKeys = composite
+  const renderedChannels = transit?.channels || (composite ? compChannels : chart.channels || []);
+  const definedChannelKeys = transit ? new Set(renderedChannels.map(ch => ch.gates.join('-'))) : composite
     ? new Set(compChannels.map(ch => ch.gates.join('-')))
     : new Set((chart.channels || []).map(ch => ch.gates.join('-')));
 
@@ -191,11 +196,12 @@ export function renderBodygraph(container, chart, opts = {}) {
   } else {
     definedCenters = new Set(chart.centers?.definedNames || []);
   }
-  const transitGates = new Set(opts.transitGates || []);
+  if (transit) definedCenters = transit.definedCenters;
+  const transitGates = transit?.transitGates || new Set(opts.transitGates || []);
 
   // ---------- SVG ----------
   const pad = 16;
-  const chartSummary = composite
+  const chartSummary = transit ? `${transit.mode === 'transit-only' ? 'Transit only' : 'Birth chart plus transits'} bodygraph. Transit activations are marked separately. Channels: ${renderedChannels.map(ch => ch.gates.join('-')).join(', ')}.` : composite
     ? `Combined Human Design bodygraph for ${composite.labelA} and ${composite.labelB}, colored by who carries each gate and channel.`
     : [
     `Human Design bodygraph.`,
@@ -269,9 +275,17 @@ export function renderBodygraph(container, chart, opts = {}) {
     both.appendChild(svgEl('stop', { offset: '1', 'stop-color': colB }));
     defs.appendChild(both);
   }
+  if (transit) {
+    const hatch = svgEl('pattern', { id: paint('transit-center'), width: '10', height: '10', patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' });
+    hatch.appendChild(svgEl('rect', { width: '10', height: '10', fill: 'var(--transit-source-soft)' }));
+    hatch.appendChild(svgEl('rect', { width: '2', height: '10', fill: transitColor, opacity: '.35' }));
+    defs.appendChild(hatch);
+  }
   svg.appendChild(defs);
 
   const gateFill = (gateNum) => {
+    if (transit?.gateSource(gateNum) === 'transit') return transitColor;
+    if (transit?.mode === 'transit-only') return colors.inactive;
     if (composite) {
       const o = gateOwner(gateNum);
       if (o === 'both') return `url(#${paint('stripe-ab')})`;
@@ -287,6 +301,8 @@ export function renderBodygraph(container, chart, opts = {}) {
     return colors.inactive;
   };
   const centerFill = (key, defined) => {
+    if (transit && defined && (transit.mode === 'transit-only' || !transit.natalCenters.has(key))) return `url(#${paint('transit-center')})`;
+    if (transit?.mode === 'transit-only') return colors.undefinedCenter;
     if (composite) {
       const o = centerOwner(key);
       return o ? `url(#${paint(`cc-${o}`)})` : colors.undefinedCenter;
@@ -297,7 +313,7 @@ export function renderBodygraph(container, chart, opts = {}) {
   // --- Channel paths (one per gate = half-channel) ---
   const pathGroup = svgEl('g', { class: `bg-paths${animate ? ' bg-reveal-paths' : ''}` });
   const gatePathEls = {};
-  const integrationChannels = (composite ? compChannels : chart.channels || [])
+  const integrationChannels = renderedChannels
     .filter(ch => ch.gates.every(g => [10, 20, 34, 57].includes(g)));
   const joinedGates = new Set(integrationChannels.flatMap(ch => ch.gates));
   const spanGates = integrationSpanGates(integrationChannels);
@@ -307,9 +323,20 @@ export function renderBodygraph(container, chart, opts = {}) {
     const gates = spanGates[i];
     const first = gates.some(g => composite ? aGates.has(g) : personalityGates.has(g));
     const second = gates.some(g => composite ? bGates.has(g) : designGates.has(g));
-    const fill = first && second ? `url(#${paint(composite ? 'stripe-ab' : 'stripe-both')})`
+    let fill = first && second ? `url(#${paint(composite ? 'stripe-ab' : 'stripe-both')})`
       : first ? (composite ? composite.colorA : colors.personality)
       : second ? (composite ? composite.colorB : colors.design) : colors.inactive;
+    if (transit) {
+      const hasTransit = gates.some(g => transit.gateSource(g) === 'transit');
+      const hasNatal = transit.mode !== 'transit-only' && gates.some(g => transit.natalGates.has(g));
+      if (hasTransit && hasNatal) {
+        const mix = svgEl('pattern', { id: paint(`transit-span-${i}`), width: '10', height: '10', patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' });
+        mix.appendChild(svgEl('rect', { width: '10', height: '10', fill }));
+        mix.appendChild(svgEl('rect', { width: '5', height: '10', fill: transitColor }));
+        defs.appendChild(mix);
+        fill = `url(#${paint(`transit-span-${i}`)})`;
+      } else if (hasTransit) fill = transitColor;
+    }
     const path = svgEl('path', {
       d, fill, class: 'bg-gate-path bg-integration-span',
       opacity: gates.length ? '1' : isDark() ? '0.55' : '0.38',
@@ -348,7 +375,7 @@ export function renderBodygraph(container, chart, opts = {}) {
     const path = svgEl('path', {
       d: shapeData.path,
       fill: centerFill(centerKey, defined),
-      stroke: defined ? 'none' : colors.centerStroke,
+      stroke: transit && defined && (transit.mode === 'transit-only' || !transit.natalCenters.has(centerKey)) ? transitColor : defined ? 'none' : colors.centerStroke,
       'stroke-width': '2',
       'data-center': centerKey,
       class: 'bg-center'
@@ -361,7 +388,7 @@ export function renderBodygraph(container, chart, opts = {}) {
       path.setAttribute('tabindex', '0');
       path.setAttribute('role', 'button');
       path.setAttribute('cursor', 'pointer');
-      path.setAttribute('aria-label', `${CENTER_DISPLAY[centerKey] || centerKey} center, ${defined ? 'defined' : 'undefined'}`);
+      path.setAttribute('aria-label', `${CENTER_DISPLAY[centerKey] || centerKey} center, ${defined ? 'defined' : 'undefined'}${transit ? ', ' + (transit.mode === 'overlay' && transit.natalCenters.has(centerKey) ? 'birth chart' : defined ? 'with transits' : 'selected view') : ''}`);
     }
     centerPathEls[centerKey] = path;
     centerGroup.appendChild(path);
@@ -380,7 +407,7 @@ export function renderBodygraph(container, chart, opts = {}) {
     if (interactive) {
       g.setAttribute('tabindex', '0');
       g.setAttribute('role', 'button');
-      g.setAttribute('aria-label', `Gate ${gateNum}${GATES[gateNum]?.name ? ' — ' + GATES[gateNum].name : ''}${isActive ? ', active' : ', inactive'}`);
+      g.setAttribute('aria-label', `Gate ${gateNum}${GATES[gateNum]?.name ? ' — ' + GATES[gateNum].name : ''}${isActive ? ', active' : ', inactive'}${transit ? ', ' + TRANSIT_SOURCE_LABELS[transit.gateSource(gateNum)] : ''}`);
       // Invisible enlarged hit area (~44px-equivalent) so fingers can
       // actually tap a gate; the visible circle stays delicate.
       g.appendChild(svgEl('circle', {
@@ -396,16 +423,18 @@ export function renderBodygraph(container, chart, opts = {}) {
       stroke: 'none',
       class: 'bg-gate-circle'
     }));
-    if (transitGates.has(gateNum)) {
+    if (transit ? transit.gateSource(gateNum) === 'both' : transitGates.has(gateNum)) {
       g.appendChild(svgEl('circle', {
         cx: c.cx, cy: c.cy, r: (c.r || 12.3) + 4.5,
-        fill: 'none', stroke: colors.transit, 'stroke-width': '2.5',
-        'stroke-dasharray': '4 3', class: 'bg-transit-ring'
+        fill: 'none', stroke: transit ? transitColor : colors.transit, 'stroke-width': '2.5',
+        'stroke-dasharray': transit ? 'none' : '4 3', class: 'bg-transit-ring'
       }));
     }
     // Text must contrast with the circle fill: in dark mode the
     // personality fill is light, so use dark text there.
-    const litTextColor = isDark() && personalityGates.has(gateNum) ? '#16130f' : '#fff';
+    const litTextColor = transit?.gateSource(gateNum) === 'transit'
+      ? 'var(--transit-source-contrast)'
+      : isDark() && personalityGates.has(gateNum) ? '#16130f' : '#fff';
     g.appendChild(svgEl('text', {
       x: c.cx, y: c.cy + 4,
       'text-anchor': 'middle', 'font-size': '11',
@@ -442,6 +471,10 @@ export function renderBodygraph(container, chart, opts = {}) {
         if (definedChannelKeys.has(ch.gates.join('-'))) ch.gates.forEach(g => gates.add(g));
       }
       for (const g of gates) { const ck = GATES[g]?.center; if (ck) centers.add(ck); }
+    } else if (sel.kind === 'channel') {
+      const channel = CHANNELS.find(ch => ch.gates.join('-') === sel.id);
+      channel?.gates.forEach(g => gates.add(g));
+      channel?.centers.forEach(c => centers.add(c));
     } else if (sel.kind === 'center') {
       centers.add(sel.id);
       for (const g of activeGates) { if (GATES[g]?.center === sel.id) gates.add(g); }
@@ -498,10 +531,11 @@ export function renderBodygraph(container, chart, opts = {}) {
       if (composite) return compositeGateTooltip(gateNum);
       const gate = GATES[gateNum];
       const acts = [];
-      for (const { planet, line } of designGates.get(gateNum) || []) {
+      if (transit) acts.push(`<span style="color:${transitColor}">${TRANSIT_SOURCE_LABELS[transit.gateSource(gateNum)]}</span>`);
+      for (const { planet, line } of (transit?.mode === 'transit-only' ? [] : designGates.get(gateNum) || [])) {
         acts.push(`<span class="bg-tt-design">${PLANET_GLYPHS[planet]} ${gateNum}.${line}</span>`);
       }
-      for (const { planet, line } of personalityGates.get(gateNum) || []) {
+      for (const { planet, line } of (transit?.mode === 'transit-only' ? [] : personalityGates.get(gateNum) || [])) {
         acts.push(`<span class="bg-tt-personality">${PLANET_GLYPHS[planet]} ${gateNum}.${line}</span>`);
       }
       const channelNote = (GATE_CHANNELS[gateNum] || [])
@@ -525,6 +559,7 @@ export function renderBodygraph(container, chart, opts = {}) {
         return `<strong>${dn} Center</strong><div class="bg-tt-channel">${txt}</div>`;
       }
       const defined = definedCenters.has(centerKey);
+      if (transit) return `<strong>${dn} Center</strong><div class="bg-tt-channel">${transit.mode === 'overlay' && transit.natalCenters.has(centerKey) ? 'Defined in birth chart' : defined ? 'Defined by the selected transit combination' : 'Not defined in the selected view'}</div>`;
       const count = [...activeGates].filter(g => GATES[g]?.center === centerKey).length;
       return `<strong>${dn} Center</strong>` +
         `<div class="bg-tt-channel">${defined ? 'Defined — consistent energy you radiate' : 'Open — you take this energy in'}` +
@@ -654,7 +689,7 @@ export function renderBodygraph(container, chart, opts = {}) {
     container.appendChild(svg);
   }
 
-  const api = { highlightGate, highlightCenter, setPinned };
+  const api = { highlightGate, highlightCenter, highlightSelection: selection => applySelection(selection || pinned), setPinned };
   if (composite) Object.assign(api, { gateOwner, centerOwner, channelDynamic });
   return api;
 }
