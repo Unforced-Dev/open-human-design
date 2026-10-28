@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { calculateTimeline, intervalAt, adjacentEvent, MINUTE, DAY, MAX_TIMELINE_SPAN } from '../src/features/transit-timeline/core.js';
-import { snapshot, stateAt, catalog, natalIdentity } from '../src/features/transit-timeline/provider.js';
+import { snapshot, safeStep, stateAt, catalog, natalIdentity } from '../src/features/transit-timeline/provider.js';
 import { wallTime, displayTime } from '../src/features/transit-timeline/time.js';
 import { buildTransitGraph } from '../src/lib/transit-graph.js';
 
@@ -151,16 +151,17 @@ test('display clock labels the date and both sides of a DST fold', () => {
     { date: '2025-12-31', time: '19:30:00' });
 });
 
-test('pinned engine crossing agrees with every visible graph state on both sides', () => {
-  const crossing = Date.parse('2026-09-23T06:10:42Z');
+test('engine crossing agrees with every visible graph state on both sides', () => {
+  // NatalEngine 1.6 computes at minute precision: find the second the Moon's gate changes.
+  let crossing = Date.parse('2026-09-23T06:08:00Z');
+  while (snapshot(crossing).moon.gate === 13) crossing += 1000;
+  assert.equal(snapshot(crossing).moon.gate, 49);
   const birth = { gates: { all: [20] }, centers: { definedNames: [] } };
   const rows = catalog();
-  assert.equal(snapshot(crossing - 1000).moon.gate, 13);
-  assert.equal(snapshot(crossing).moon.gate, 49);
   for (const mode of ['overlay', 'transit-only']) {
     const result = calculateTimeline({ start: crossing - 2 * MINUTE, end: crossing + 2 * MINUTE,
-      snapshot, states: activations => stateAt(birth, activations, mode), catalog: rows });
-    assert.ok(result.events.includes(crossing), `${mode}: missing exact-second crossing`);
+      snapshot, safeStep, states: activations => stateAt(birth, activations, mode), catalog: rows });
+    assert.ok(result.events.includes(crossing), `${mode}: missing crossing`);
     for (const time of [crossing - 2_000, crossing - 1_000, crossing, crossing + 1_000, crossing + 2_000]) {
       const expected = stateAt(birth, snapshot(time), mode);
       const actual = new Map(result.rows.flatMap(row => {
@@ -170,4 +171,28 @@ test('pinned engine crossing agrees with every visible graph state on both sides
       assert.deepEqual(actual, expected, `${mode}: ${new Date(time).toISOString()}`);
     }
   }
+});
+
+test('the adaptive scan finds exactly what a minute-by-minute scan finds', () => {
+  // A week around Mercury's October 2026 retrograde station, with a natal chart.
+  const birth = { gates: { all: [1, 8, 10, 20, 34, 57] }, centers: { definedNames: ['g', 'throat'] } };
+  const options = { start: Date.parse('2026-10-21T00:00:00Z'), end: Date.parse('2026-10-28T00:00:00Z'),
+    catalog: catalog(), states: activations => stateAt(birth, activations, 'overlay') };
+  let calls = 0;
+  const counted = time => { calls++; return snapshot(time); };
+  const adaptive = calculateTimeline({ ...options, snapshot: counted, safeStep });
+  const adaptiveCalls = calls;
+  const everyMinute = calculateTimeline({ ...options, snapshot });
+  assert.ok(everyMinute.events.length > 10);
+  assert.deepEqual(adaptive.events, everyMinute.events);
+  assert.deepEqual(adaptive.rows, everyMinute.rows);
+  assert.ok(adaptiveCalls * 10 < 7 * 24 * 60, `adaptive scan used ${adaptiveCalls} snapshots`);
+});
+
+test('safeStep is the time before any planet can reach a gate edge', () => {
+  // Gate 25 starts at 358.25°; 1° inside it at the Moon's 16°/day bound is 1.5 hours.
+  assert.equal(safeStep({ moon: { longitude: 359.25 } }), 1.5 * 3_600_000);
+  assert.equal(safeStep({ moon: { longitude: 358.25 } }), 0);
+  assert.ok(safeStep({ pluto: { longitude: 1 } }) > safeStep({ moon: { longitude: 1 } }));
+  assert.ok(Number.isNaN(safeStep({ moon: {} })));
 });

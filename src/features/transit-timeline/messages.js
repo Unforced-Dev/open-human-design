@@ -24,7 +24,7 @@ export const en = {
   before: 'Already active at the start of the calculated range', after: 'Still active at the end of the calculated range',
   jump: 'View this interval', inspect: 'Open chart details', close: 'Close timing details',
   estimated: 'Transition times are estimates. Bars clipped at the window edges may continue beyond it.',
-  sampling: 'Scanned every minute; detected changes refined to 1 second. Brief reversals between samples may be missed.',
+  sampling: 'Positions are calculated to the minute. The scan skips ahead only as far as no planet can reach a gate edge.',
   fold: 'This local time occurs twice. Choose its UTC offset.', gap: 'This local time does not exist in that timezone.',
   invalid: 'Enter a valid date, time and IANA timezone.', chooseOffset: 'UTC offset',
   hoursMinutes: '{hours}h {minutes}m',

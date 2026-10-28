@@ -10,9 +10,11 @@ export const MAX_TIMELINE_SPAN = 367 * DAY;
  * even when both crossings fall inside one scan step.
  * Times are estimates: same-planet out-and-back excursions within one scan step
  * can be missed. Never present the refinement tolerance as ephemeris accuracy.
+ * `safeStep(activations)` may return how long no planet can leave its gate; the
+ * scan then jumps that far instead of `scanStep`, which stays the minimum step.
  */
 export function calculateTimeline({ start, end, snapshot, states, catalog,
-  scanStep = MINUTE, tolerance = 1000, onProgress = () => {} }) {
+  scanStep = MINUTE, safeStep = null, tolerance = 1000, onProgress = () => {} }) {
   if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start ||
       !Number.isFinite(scanStep) || !Number.isFinite(tolerance) ||
       scanStep < tolerance || tolerance < 1 || end - start > MAX_TIMELINE_SPAN) {
@@ -42,10 +44,12 @@ export function calculateTimeline({ start, end, snapshot, states, catalog,
     }
   };
   apply(start, previous);
-  const total = Math.ceil((end - start) / scanStep);
-  const progressEvery = Math.max(120, Math.ceil(total / 100));
-  for (let i = 1; i <= total; i++) {
-    const time = Math.min(start + i * scanStep, end);
+  let reported = 0;
+  while (previousTime < end) {
+    // Whole scan steps keep samples on the same grid as a plain scan.
+    const safe = safeStep?.(previous);
+    const steps = safe > scanStep ? Math.floor(Math.min(safe, end - start) / scanStep) : 1;
+    const time = Math.min(previousTime + steps * scanStep, end);
     const current = snapshot(time);
     let crossings;
     for (const planet of planets) {
@@ -70,7 +74,8 @@ export function calculateTimeline({ start, end, snapshot, states, catalog,
     }
     previous = current;
     previousTime = time;
-    if (i % progressEvery === 0 || i === total) onProgress(i / total);
+    const progress = (time - start) / (end - start);
+    if (progress - reported >= .01 || time === end) onProgress(reported = progress);
   }
   const endState = states(previous);
   for (const [key, interval] of open) {

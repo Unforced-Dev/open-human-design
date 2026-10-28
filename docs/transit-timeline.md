@@ -37,9 +37,9 @@ Click a bar, a row symbol, or a graph element to open its existing chart detail.
 
 ## Accuracy and limits
 
-The worker samples every minute, detects gate changes, and refines detected crossings to approximately one second. Boundaries are estimates: a planet that leaves and returns to the same gate between two samples can be missed. A bar clipped by the calculated range does not imply that its activation began or ended at that boundary. The short labels “Started earlier” and “Ends later” retain this distinction; hover text supplies the fuller explanation.
+The worker samples on a one-minute grid but skips ahead as far as no planet can reach the edge of its gate, using each body's fastest measured motion (`MAX_SPEED` in `provider.js`) with margin. Detected crossings are refined by bisection. NatalEngine 1.6 computes positions to the minute, so boundaries are accurate to the minute. Over two full years the adaptive scan gave exactly the same intervals as a plain minute-by-minute scan, with about 20 times fewer engine calls (1 year: about 3 s instead of about 60 s in Node on a desktop). A bar clipped by the calculated range does not imply that its activation began or ended at that boundary. The short labels “Started earlier” and “Ends later” retain this distinction; hover text supplies the fuller explanation.
 
-Annual ranges require substantially more computation than short ranges. Jobs can be cancelled, and a bounded in-memory cache avoids repeating identical requests. No background service, external API, or persisted calculation cache is added.
+Annual ranges still take longer than short ranges. Jobs can be cancelled, and a bounded in-memory cache avoids repeating identical requests. No background service, external API, or persisted calculation cache is added.
 
 ## Integration
 
