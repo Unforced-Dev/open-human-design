@@ -132,13 +132,7 @@
         <p class="view-subtitle">How the current planetary weather interacts with your chart</p>
         <div class="transit-date-picker">
           <label>Date<input type="date" id="transit-date"></label>
-          <div class="transit-time-field">
-            <label for="transit-time">Time</label>
-            <div class="transit-time-group">
-              <input type="time" id="transit-time" step="60">
-              <label class="transit-precision"><input type="checkbox" id="transit-seconds" aria-label="Include seconds"> Seconds</label>
-            </div>
-          </div>
+          <label>Time<input type="time" id="transit-time"></label>
           <label>Timezone<select id="transit-timezone" aria-describedby="transit-status"></select></label>
           <button id="transit-now" class="btn-secondary">Now</button>
         </div>

@@ -14,7 +14,6 @@ import { getCurrentChart, showTransitDetail } from './chart.js';
 export function setupTransitView() {
   const dateInput = document.getElementById('transit-date');
   const timeInput = document.getElementById('transit-time');
-  const secondsInput = document.getElementById('transit-seconds');
   let zoneInput = document.getElementById('transit-timezone');
   const localZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   if (Intl.supportedValuesOf) {
@@ -34,7 +33,6 @@ export function setupTransitView() {
     const now = new Date();
     dateInput.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     timeInput.value = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    if (secondsInput.checked) timeInput.value += `:${String(now.getSeconds()).padStart(2, '0')}`;
     const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     if (zoneInput.tagName === 'SELECT' && ![...zoneInput.options].some(option => option.value === zone)) {
       zoneInput.add(new Option(zone, zone));
@@ -46,12 +44,6 @@ export function setupTransitView() {
 
   dateInput.addEventListener('change', renderTransits);
   timeInput.addEventListener('change', renderTransits);
-  secondsInput.addEventListener('change', () => {
-    const minute = timeInput.value.slice(0, 5);
-    timeInput.step = secondsInput.checked ? '1' : '60';
-    timeInput.value = minute ? minute + (secondsInput.checked ? ':00' : '') : '';
-    renderTransits();
-  });
   zoneInput.addEventListener('change', renderTransits);
   document.getElementById('transit-choice').addEventListener('change', renderTransits);
   document.getElementById('transit-now').addEventListener('click', setNow);
@@ -61,8 +53,7 @@ export function renderTransits() {
   const current = getCurrentChart();
   if (!current) return;
   const date = document.getElementById('transit-date').value;
-  let time = document.getElementById('transit-time').value;
-  if (time.length === 5 && document.getElementById('transit-seconds').checked) time += ':00';
+  const time = document.getElementById('transit-time').value;
   const zone = document.getElementById('transit-timezone').value.trim();
   const status = document.getElementById('transit-status');
   const choiceLabel = document.getElementById('transit-choice-label');

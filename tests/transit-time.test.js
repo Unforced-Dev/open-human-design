@@ -71,27 +71,20 @@ test('historical offsets retain seconds in conversion and display', () => {
   assert.equal(formatTransitOffset(5.75), 'UTC+5:45');
 });
 
-test('both transit APIs match direct astronomy at the exact second, not the start of the minute', () => {
+test('both transit APIs match direct astronomy at the selected minute in any host timezone', () => {
+  // NatalEngine 1.6 computes at minute precision and truncates float minutes
+  // (e.g. 9.01666… h becomes 09:00), so use :00 and :30, which are exact in binary.
   // Include host DST boundaries and year rollover; run with several host TZ values.
-  for (const iso of ['1900-01-01T12:00:25Z', '2026-09-23T06:30:25Z', '2026-03-08T10:00:01Z', '2026-11-01T09:30:25Z', '2027-01-01T00:00:01Z']) {
+  for (const iso of ['1900-01-01T12:00:00Z', '2026-09-23T06:30:00Z', '2026-03-08T10:00:00Z', '2026-11-01T09:30:00Z', '2027-01-01T00:00:00Z']) {
     const instant = Date.parse(iso);
     const utc = new Date(instant);
     const expected = calculateBirthPositions(utc.getUTCFullYear(), utc.getUTCMonth() + 1, utc.getUTCDate(),
-      utc.getUTCHours() + utc.getUTCMinutes() / 60 + utc.getUTCSeconds() / 3600, 0, null, null, { preserveSeconds: true });
+      utc.getUTCHours() + utc.getUTCMinutes() / 60, 0);
     const args = engineTransitArguments(instant);
     const gates = calculateTransitGates(...args).gates;
     for (const planet of ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto', 'northNode']) {
       assert.ok(Math.abs(gates[planet].longitude - expected[planet].longitude) < 1e-8, `${iso}: ${planet}`);
     }
-    assert.notEqual(gates.moon.longitude, calculateTransitGates(...engineTransitArguments(instant - utc.getUTCSeconds() * 1000)).gates.moon.longitude);
     assert.deepEqual(calculateHDTransits({}, ...args).transitGates, gates);
   }
-});
-
-test('adjacent seconds can cross a transit gate boundary in the pinned engine', () => {
-  const moons = ['14:10:41', '14:10:42'].map(time => {
-    const { instant } = transitInstants('2026-09-23', time, 'Asia/Shanghai')[0];
-    return calculateTransitGates(...engineTransitArguments(instant)).gates.moon;
-  });
-  assert.deepEqual(moons.map(moon => `${moon.gate}.${moon.line}`), ['13.6', '49.1']);
 });

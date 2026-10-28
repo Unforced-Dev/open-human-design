@@ -42,10 +42,11 @@ export function formatTransitOffset(offset) {
 /** NatalEngine reads a Date through browser-local getters before applying its offset. */
 export function engineTransitArguments(instant) {
   const date = new Date(instant);
-  // getTimezoneOffset() truncates historical offsets to minutes (e.g. Nepal
-  // used +05:41:16 in 1900). Reconstruct the local clock in UTC to retain seconds.
+  // NatalEngine 1.6 reads only the local hours and minutes, and getTimezoneOffset()
+  // truncates historical offsets (Nepal used +05:41:16 in 1900). Derive the offset
+  // from the same seconds-free clock the engine reads, so the UTC instant survives.
   const localClock = new Date(instant);
   localClock.setUTCFullYear(date.getFullYear(), date.getMonth(), date.getDate());
-  localClock.setUTCHours(date.getHours(), date.getMinutes(), date.getSeconds(), date.getMilliseconds());
+  localClock.setUTCHours(date.getHours(), date.getMinutes(), 0, 0);
   return [date, (localClock.getTime() - instant) / HOUR];
 }
