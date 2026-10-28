@@ -624,16 +624,6 @@ body {
 [data-theme="dark"] .circuit-badge.collective { background: #152030; }
 [data-theme="dark"] .circuit-badge.integration { background: #152a1d; }
 
-.gate-item .gate-description {
-  font-size: 13px;
-  color: var(--text-secondary);
-  margin-top: 6px;
-  line-height: 1.5;
-  display: none;
-}
-
-.gate-item.expanded .gate-description { display: block; }
-
 /* =============================================
    Variable Panel
    ============================================= */
@@ -1416,7 +1406,6 @@ body {
   color: var(--text);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
-.lens-note { font-size: 12px; color: var(--text-tertiary); font-style: italic; margin-top: 10px; }
 .gk-spectrum {
   display: flex;
   align-items: center;
@@ -2369,3 +2358,6 @@ body.dp-lock { overflow: hidden; }
 .dlink.conn-type-link { padding: 0; color: var(--text-tertiary); font-size: 11px; margin-bottom: 0; }
 .dlink.conn-type-link:hover { color: var(--accent); }
 .dlink.pill { border-radius: 999px; background: var(--bg-elevated); min-height: 36px; }
+
+/* Panel items lit from the bodygraph (relational highlight reaches the panel) */
+.dlink.row-lit, .gate-chip.row-lit, .dp-card.row-lit { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }

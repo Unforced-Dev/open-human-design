@@ -1,7 +1,8 @@
 /**
  * Detail panel — the one place every "what does this mean?" opens.
  *
- * Any element with data-detail="kind:id" inside a [data-detail-scope] opens
+ * Any element with data-detail="kind:id" (lib/details.js dt()/dl() write it,
+ * with tabindex and role for keyboard use) inside a [data-detail-scope] opens
  * that item here, in place: a bottom sheet on narrow screens (modal, focus
  * trapped), a side panel on wide ones (non-modal, so the chart stays usable
  * beside it). Links inside the panel open onward with a Back trail.
@@ -99,9 +100,12 @@ function back() {
   panel.querySelector('#dp-title')?.focus({ preventScroll: true });
 }
 
-/** Close the panel when the view that owns its scope goes away. */
-export function closeIfScope(scope) {
-  if (isOpen() && stack.some(e => e.scope === scope)) close();
+/**
+ * Re-render the open item in place after its view re-rendered (theme toggle,
+ * new transit date), so the panel's context and the graph pin stay current.
+ */
+export function refreshDetail(scope) {
+  if (isOpen() && current()?.scope === scope) render({ keepScroll: true });
 }
 
 function activate(trigger, evt) {
@@ -113,18 +117,6 @@ function activate(trigger, evt) {
   evt.preventDefault();
   openDetail(scope, target.kind, target.id, { push: inPanel, trigger: inPanel ? null : trigger });
   return true;
-}
-
-// Non-button triggers (cards, rows) become focusable buttons for keyboard and
-// assistive tech. Runs on every DOM change so views needn't remember to.
-function enhance(root) {
-  const nodes = root.matches?.('[data-detail]') ? [root] : [];
-  nodes.push(...(root.querySelectorAll?.('[data-detail]') || []));
-  for (const el of nodes) {
-    if (el.tagName === 'BUTTON' || el.tagName === 'A') continue;
-    if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '0');
-    if (!el.hasAttribute('role')) el.setAttribute('role', 'button');
-  }
 }
 
 function trapFocus(e) {
@@ -173,17 +165,17 @@ export function initDetailPanel() {
     if (trigger) activate(trigger, e);
   });
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && isOpen()) { e.preventDefault(); close(); return; }
+    if (e.key === 'Escape' && isOpen()) {
+      // Escape belongs to an open modal dialog or a form field outside the panel first.
+      const inField = e.target.closest?.('input, select, textarea') && !panel.contains(e.target);
+      if (!document.querySelector('.modal-overlay') && !inField) { e.preventDefault(); close(); }
+      return;
+    }
     trapFocus(e);
     if (e.key !== 'Enter' && e.key !== ' ') return;
     const trigger = e.target.closest?.('[data-detail]');
     if (trigger && trigger.tagName !== 'BUTTON' && trigger.tagName !== 'A') activate(trigger, e);
   });
-
-  enhance(document.body);
-  new MutationObserver(muts => {
-    for (const m of muts) for (const n of m.addedNodes) if (n.nodeType === 1) enhance(n);
-  }).observe(document.body, { childList: true, subtree: true });
 
   WIDE.addEventListener('change', () => { if (isOpen()) setMode(); });
 }

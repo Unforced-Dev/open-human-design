@@ -167,6 +167,13 @@ const browser = await chromium.launch({ executablePath: CHROME, headless: true }
     const body = await page.textContent('#detail-panel');
     expect(/transiting planet sits in this gate/.test(body), `transit note missing for ${sun}`);
     await page.keyboard.press('Escape');
+    // A temporarily defined center's panel must say the transit defines it.
+    const temp = await page.$('#transit-content .center-card[data-detail]');
+    if (temp) {
+      await temp.click();
+      expect(/transits on the chosen date define it/.test(await page.textContent('#detail-panel')), 'temporarily defined center panel ignores the transit');
+      await page.keyboard.press('Escape');
+    }
   });
 
   await check('800px: connection — every item opens, combined chart too', async () => {
@@ -247,9 +254,35 @@ const browser = await chromium.launch({ executablePath: CHROME, headless: true }
     await page.$eval('#bodygraph-container .bg-center[data-center="g"]', el => el.dispatchEvent(new MouseEvent('click', { bubbles: true })));
     const st = await panelState(page);
     expect(/G Center/.test(st.label) && !st.back, `graph click with panel open → ${JSON.stringify(st)}`);
+    // Park the mouse off the lists: a real hover over a gate row lights it by design.
+    await page.mouse.move(2, 2);
     await page.keyboard.press('Escape');
     const lit = await page.$$eval('.bodygraph-svg .bg-lit', els => els.length);
     expect(lit === 0, 'pin not cleared on close');
+  });
+
+  await check('1280px: Escape in the edit dialog closes the dialog, not the panel behind it', async () => {
+    await page.goto(`${BASE}/`);
+    await page.evaluate(() => localStorage.clear());
+    await page.goto(`${BASE}/`);
+    await enterManual(page, { name: 'Ada Test', date: '1990-06-15', time: '14:30', tz: -6 });
+    await page.$eval('.foundation-clickable[data-detail^="type:"]', el => el.click());
+    await page.selectOption('#people-switcher', '__edit');
+    await page.waitForSelector('.modal #edit-name');
+    await page.keyboard.press('Escape');
+    expect(!(await page.$('.modal-overlay')), 'edit dialog did not close');
+    expect((await panelState(page)).open, 'Escape for the dialog also closed the detail panel');
+    await page.keyboard.press('Escape');
+  });
+
+  await check('1280px: theme toggle keeps the open item pinned on the new graph', async () => {
+    await page.$eval('#bodygraph-container .bg-gate[data-gate="34"]', el => el.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    await page.mouse.move(2, 2);
+    await page.click('#theme-toggle');
+    const st = await panelState(page);
+    const pinned = await page.$eval('.bg-gate-path[data-gate="34"]', el => el.classList.contains('bg-lit'));
+    expect(st.open && st.label === 'Gate 34' && pinned, `after theme toggle: open=${st.open} pinned=${pinned}`);
+    await page.keyboard.press('Escape');
   });
   await ctx.close();
 }

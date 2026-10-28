@@ -22,7 +22,7 @@ import { renderBodygraph, PLANET_ORDER, PLANET_GLYPHS, PLANET_NAMES } from '../b
 import { esc, formatBirth } from '../lib/format.js';
 import { birthToParams, connectionUrl } from '../lib/share.js';
 import { dt } from '../lib/details.js';
-import { registerScope, openDetail } from '../detail-panel.js';
+import { registerScope, openDetail, refreshDetail } from '../detail-panel.js';
 
 let current = null; // { birth, chart, geneKeys }
 let bodygraphApi = null;
@@ -31,7 +31,12 @@ let bodygraphApi = null;
 // item is open its gate/center stays pinned-lit on the bodygraph.
 registerScope('chart', {
   context: () => current && { chart: current.chart, geneKeys: current.geneKeys },
-  onShow: (_entry, result) => bodygraphApi?.setPinned?.(result.pin || null),
+  onShow: (_entry, result) => {
+    bodygraphApi?.setPinned?.(result.pin || null);
+    // Gate chips and line cards in the panel light their gate on the graph.
+    document.querySelectorAll('#detail-panel .gate-chip[data-gate], #detail-panel .dp-card[data-gate]')
+      .forEach(el => wireRowHover(el, parseInt(el.dataset.gate)));
+  },
   onClose: () => bodygraphApi?.setPinned?.(null)
 });
 
@@ -161,6 +166,7 @@ export function rerenderBodygraph(transitGates = null) {
     onHighlight: highlightPanelRows,
     transitGates: transitGates || undefined
   });
+  refreshDetail('chart'); // re-pin the open item on the new graph
   return bodygraphApi;
 }
 
@@ -235,7 +241,7 @@ function renderFoundation(chart, sensitivity = null, birth = null) {
 
   panel.dataset.detailScope = 'chart';
   const tile = (label, value, detail, trigger) => `
-      <div class="foundation-item foundation-clickable" ${trigger}>
+      <div class="foundation-item ${trigger ? 'foundation-clickable' : ''}" ${trigger}>
         <div class="label">${label}</div>
         <div class="value">${value}</div>
         <div class="detail">${detail}</div>

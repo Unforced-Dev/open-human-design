@@ -9,8 +9,8 @@ import { listPeople, birthFromPerson } from '../lib/people.js';
 import { createPlaceSearch } from '../lib/placesearch.js';
 import { esc } from '../lib/format.js';
 import { getCurrentChart } from './chart.js';
-import { dt, dl, centerName } from '../lib/details.js';
-import { registerScope } from '../detail-panel.js';
+import { dt, dl, centerName, channelKeyOf } from '../lib/details.js';
+import { registerScope, closeDetail } from '../detail-panel.js';
 
 let teamCtx = null; // { result, charts, names } of the analysis on screen
 registerScope('team', { context: () => teamCtx });
@@ -103,6 +103,15 @@ function runTeamAnalysis() {
     return;
   }
 
+  // Panels link people by name, so two "Alex"es must not collide.
+  const seen = new Map();
+  for (let i = 0; i < names.length; i++) {
+    const n = (seen.get(names[i]) || 0) + 1;
+    seen.set(names[i], n);
+    if (n > 1) names[i] = `${names[i]} (${n})`;
+  }
+
+  closeDetail();
   const result = analyzePenta(charts, names);
   teamCtx = { result, charts, names };
   renderTeamContent(result);
@@ -111,7 +120,6 @@ function runTeamAnalysis() {
 function renderTeamContent(result) {
   const container = document.getElementById('team-content');
   container.dataset.detailScope = 'team';
-  const keyOf = (gates) => [...gates].sort((x, y) => x - y).join('-');
 
   const membersHtml = result.members.map((m, i) => `
     <div class="member-card" ${dt('member', i)}>
@@ -166,7 +174,7 @@ function renderTeamContent(result) {
       <div style="margin-top:16px">
         <div class="panel-title">Electromagnetic Connections (${result.electromagnetics.length})</div>
         ${result.electromagnetics.slice(0, 10).map(e => `
-          <div class="connection-type" style="border-left:3px solid var(--electromagnetic)" ${dt('teamchannel', keyOf(e.gates))}>
+          <div class="connection-type" style="border-left:3px solid var(--electromagnetic)" ${dt('teamchannel', channelKeyOf(e.gates))}>
             <div class="conn-channel">${esc(e.channel)} <span class="conn-gates">(${e.gates.join('–')})</span></div>
             <div class="conn-desc">${esc(e.personA)} + ${esc(e.personB)} — ${esc(e.theme)}</div>
           </div>

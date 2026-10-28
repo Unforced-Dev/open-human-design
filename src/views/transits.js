@@ -10,7 +10,7 @@ import { transitInstants, engineTransitArguments, formatTransitOffset } from '..
 import { buildTransitGraph } from '../lib/transit-graph.js';
 import { renderTransitLegend, renderTransitSummary, highlightTransitRows } from './transit-presentation.js';
 
-import { registerScope, openDetail } from '../detail-panel.js';
+import { registerScope, openDetail, refreshDetail } from '../detail-panel.js';
 import { getCurrentChart } from './chart.js';
 
 let transitDetailContext = null; // { transitGates, mode, model, api } of the graph on screen
@@ -144,6 +144,7 @@ export function renderTransits() {
   }
 
   renderTransitContent(overlay, date, time);
+  refreshDetail('transit'); // an open panel follows the new time
 }
 
 export function renderTransitContent(overlay, date = null) {

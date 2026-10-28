@@ -10,10 +10,10 @@ import { listPeople, birthFromPerson, getSharedGuest } from '../lib/people.js';
 import { createPlaceSearch } from '../lib/placesearch.js';
 import { esc } from '../lib/format.js';
 import { getCurrentChart } from './chart.js';
-import { dt, dl } from '../lib/details.js';
+import { dt, dl, channelKeyOf, conditioningOf } from '../lib/details.js';
 import { pairModel } from '../lib/pair.js';
 import { CONNECTION_TYPES } from '../lib/glossary.js';
-import { registerScope, openDetail } from '../detail-panel.js';
+import { registerScope, openDetail, closeDetail } from '../detail-panel.js';
 
 let placeB = null;
 let pairCtx = null;  // { a, b, nameA, nameB, comparison, model } of the comparison on screen
@@ -116,12 +116,12 @@ function compositePalette() {
 
 
 const CHANNEL_BY_NAME = Object.fromEntries(CHANNELS.map(ch => [ch.name, ch]));
-const keyOf = (gates) => [...gates].sort((x, y) => x - y).join('-');
 
 function renderConnectionContent(comparison, a, b) {
   lastComparison = [comparison, a, b];
   const container = document.getElementById('connection-content');
   container.dataset.detailScope = 'pair';
+  closeDetail(); // a panel from the previous comparison would be stale
   const cc = comparison.connectionChart;
   const nameA = a.birth.name || 'You';
   const nameB = b.birth.name || 'Person B';
@@ -142,7 +142,7 @@ function renderConnectionContent(comparison, a, b) {
         <div class="conn-section-head">${dl('conntype', key, t.label, 'panel-title conn-type-link')}<span class="conn-count">${items.length}</span></div>
         <p class="panel-intro">${t.text}</p>
         ${items.length ? items.map(c => `
-          <div class="connection-type" style="border-left:3px solid ${t.color}" ${dt('channel', keyOf(c.gates))}>
+          <div class="connection-type" style="border-left:3px solid ${t.color}" ${dt('channel', channelKeyOf(c.gates))}>
             <div class="conn-channel">${esc(c.channel)} <span class="conn-gates">(${c.gates.join('–')})</span> ${circuitBadge(c.circuit)}</div>
             <div class="conn-desc">${esc(c.description)}</div>
           </div>`).join('')
@@ -152,11 +152,8 @@ function renderConnectionContent(comparison, a, b) {
 
   // Center conditioning map — who steadily influences whom.
   const cd = comparison.centerDynamics || [];
-  const conditioning = cd.filter(c => /Conditions/.test(c.dynamic)).map(c => {
-    const from = c.dynamic.startsWith('A') ? nameA : nameB;
-    const to = c.dynamic.startsWith('A') ? nameB : nameA;
-    return `<div class="conn-center" ${dt('center', c.center)}><strong>${esc(c.centerName)}</strong> — ${esc(from)} conditions ${esc(to)} <span class="conn-center-theme">${esc(c.theme)}</span></div>`;
-  });
+  const conditioning = conditioningOf(comparison, nameA, nameB).map(c =>
+    `<div class="conn-center" ${dt('center', c.center)}><strong>${esc(c.centerName)}</strong> — ${esc(c.from)} conditions ${esc(c.to)} <span class="conn-center-theme">${esc(c.theme)}</span></div>`);
   const centerLinks = (dyn) => cd.filter(c => c.dynamic === dyn).map(c => dl('center', c.center, esc(c.centerName), 'inline-link'));
   const bothDefined = centerLinks('Both Defined');
   const bothOpen = centerLinks('Both Open');
@@ -230,7 +227,7 @@ function renderConnectionContent(comparison, a, b) {
       <p class="panel-intro">${esc(br.description)}</p>
       <div class="pills">${br.bridgedChannels.map(c => {
         const ch = CHANNEL_BY_NAME[c.channel];
-        return ch ? dl('channel', keyOf(ch.gates), `${esc(c.channel)} · ${esc(c.theme)}`, 'pill')
+        return ch ? dl('channel', channelKeyOf(ch.gates), `${esc(c.channel)} · ${esc(c.theme)}`, 'pill')
           : `<span class="pill">${esc(c.channel)} · ${esc(c.theme)}</span>`;
       }).join('')}</div>` : ''}
 

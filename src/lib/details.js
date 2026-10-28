@@ -19,7 +19,7 @@
 import {
   GATES, CHANNELS, CENTERS, TYPES, PROFILES, AUTHORITIES, CIRCUIT_GROUPS,
   GATE_DESCRIPTIONS, LINE_DESCRIPTIONS, CHANNEL_DESCRIPTIONS,
-  HEXAGRAM_DESCRIPTIONS, GENE_KEY_DESCRIPTIONS, LINE_NAMES
+  HEXAGRAM_DESCRIPTIONS, GENE_KEY_DESCRIPTIONS
 } from 'natalengine';
 import { esc } from './format.js';
 import {
@@ -30,12 +30,28 @@ import {
 
 // ---------- small helpers ----------
 
-/** A link onward: opens kind:id in the same panel. */
-export const dl = (kind, id, label, cls = '') =>
-  `<button type="button" class="dlink ${cls}" data-detail="${esc(kind)}:${esc(String(id))}">${label}</button>`;
+/** A link onward: opens kind:id in the same panel. `attrs` adds raw attributes. */
+export const dl = (kind, id, label, cls = '', attrs = '') =>
+  `<button type="button" class="dlink ${cls}" data-detail="${esc(kind)}:${esc(String(id))}" ${attrs}>${label}</button>`;
 
-/** Attribute string that makes any element a detail trigger. */
-export const dt = (kind, id) => `data-detail="${esc(kind)}:${esc(String(id))}"`;
+/**
+ * Attributes that make any element (card, row, tile) a detail trigger,
+ * focusable and announced as a button. On a real <button> the extra role
+ * and tabindex are redundant but harmless.
+ */
+export const dt = (kind, id) => `data-detail="${esc(kind)}:${esc(String(id))}" tabindex="0" role="button"`;
+
+/** The canonical channel key ("10-34") from gates in any order. */
+export const channelKeyOf = (gates) => [...gates].sort((x, y) => x - y).join('-');
+
+/** Centers where one person conditions the other: [{ center, centerName, theme, from, to }]. */
+export function conditioningOf(comparison, nameA, nameB) {
+  return (comparison.centerDynamics || []).filter(c => /Conditions/.test(c.dynamic)).map(c => ({
+    ...c,
+    from: c.dynamic.startsWith('A') ? nameA : nameB,
+    to: c.dynamic.startsWith('A') ? nameB : nameA
+  }));
+}
 
 const section = (label, html) => html ? `<div class="dp-section"><div class="dp-section-label">${label}</div>${html}</div>` : '';
 const para = (text, cls = 'dp-text') => text ? `<p class="${cls}">${esc(text)}</p>` : '';
@@ -60,7 +76,7 @@ const AUTHORITY_CENTER = {
 const gateLabel = (g) => `Gate ${g}${GATES[g]?.name ? ` · ${esc(GATES[g].name)}` : ''}`;
 const gateLink = (g, cls = '') => dl('gate', g, gateLabel(g), cls);
 const channelLink = (ch, cls = '') => dl('channel', channelKey(ch), `${esc(ch.name)} <span class="dl-sub">${ch.gates.join('–')}</span>`, cls);
-const centerLink = (key, cls = '') => dl('center', key, esc(centerName(key)), cls);
+const centerLink = (key, cls = '') => dl('center', key, esc(centerName(key)), cls, `data-center="${esc(key)}"`);
 const circuitLink = (c) => c ? dl('circuit', c, `${esc(cap(c))} circuit`, `circuit-link ${esc(c)}`) : '';
 
 /** All activations of a gate in a chart: [{ side, planet, line, color, tone, base }]. */
@@ -84,7 +100,6 @@ const actLink = (a) => dl('planet', planetId(a.side, a.planet), esc(actLabel(a))
 let lens = 'hd';
 export const LENSES = [['hd', 'Human Design'], ['iching', 'I Ching'], ['gk', 'Gene Keys']];
 export function setLens(next) { if (LENSES.some(([k]) => k === next)) lens = next; }
-export function getLens() { return lens; }
 
 function lensBody(g, activeLines) {
   if (lens === 'iching') {
@@ -221,10 +236,22 @@ function chartChannel(id, { chart, transitGates }) {
   };
 }
 
-function chartCenter(key, { chart }) {
+/** Centers a date's transits define on top of the natal chart (not natally defined). */
+function transitDefinedCenters(chart, transitGates) {
+  const lit = new Set([...chart.gates.all, ...transitGates]);
+  const out = new Set();
+  for (const ch of CHANNELS) {
+    if (lit.has(ch.gates[0]) && lit.has(ch.gates[1])) for (const k of ch.centers) out.add(k);
+  }
+  for (const k of chart.centers.definedNames) out.delete(k);
+  return out;
+}
+
+function chartCenter(key, { chart, transitGates }) {
   const c = CENTERS[key];
   if (!c) return null;
   const status = centerStatus(chart, key);
+  const byTransit = transitGates && transitDefinedCenters(chart, transitGates).has(key);
   const meaning = status === 'defined' ? (c.definedMeaning || c.pressure)
     : status === 'undefined' ? c.undefinedMeaning : c.openMeaning;
   const active = new Set(chart.gates.all);
@@ -236,6 +263,7 @@ function chartCenter(key, { chart }) {
     pin: { kind: 'center', id: key },
     body: `
       <div class="dp-tags"><span class="center-status ${status}">${cap(status)}</span>${c.biological ? `<span class="dp-tag">${esc(c.biological)}</span>` : ''}${c.motor ? '<span class="dp-tag">Motor</span>' : ''}</div>
+      ${byTransit ? `<p class="dp-callout on">${cap(status)} in your chart, but the transits on the chosen date define it. For now you feel its consistent energy: ${esc((c.definedMeaning || c.pressure || '').replace(/\.$/, ''))}.</p>` : ''}
       ${para(meaning)}
       ${status !== 'defined' && c.notSelfQuestion ? `<p class="center-notself">${esc(c.notSelfQuestion)}</p>` : ''}
       ${para(DEFINED_TEXT[status], 'dp-text dp-soft')}
@@ -438,13 +466,6 @@ function variableDetail(slot, { chart }) {
 // Pair scope (Connection)
 // ==========================================================================
 
-const DYN_SHORT = {
-  electromagnetic: 'You each bring one half — together you complete it.',
-  companionship: 'You both carry the whole channel.',
-  compromise: 'One of you has the full channel, the other only half.',
-  dominance: 'One of you has the whole channel, the other none of it.'
-};
-
 function whoName(ctx, owner) {
   return owner === 'both' ? `${ctx.nameA} + ${ctx.nameB}` : owner === 'a' ? ctx.nameA : owner === 'b' ? ctx.nameB : 'Neither of you';
 }
@@ -543,7 +564,7 @@ function connType(dyn, ctx) {
     body: `
       ${para(t.text)}
       ${section(`Between you (${items.length})`, items.length
-        ? items.map(c => `<div class="dp-row">${dl('channel', c.gates.slice().sort((x, y) => x - y).join('-'), `${esc(c.channel)} <span class="dl-sub">${c.gates.join('–')}</span>`)}<span class="dp-row-note">${esc(c.theme || '')}</span></div>`).join('')
+        ? items.map(c => `<div class="dp-row">${dl('channel', channelKeyOf(c.gates), `${esc(c.channel)} <span class="dl-sub">${c.gates.join('–')}</span>`)}<span class="dp-row-note">${esc(c.theme || '')}</span></div>`).join('')
         : `<p class="dp-muted">None between you.</p>`)}
       ${section('The other three', chips(Object.keys(CONNECTION_TYPES).filter(k => k !== dyn).map(k => dl('conntype', k, CONNECTION_TYPES[k].label))))}`
   };
@@ -631,12 +652,8 @@ function pairComposite(_id, ctx) {
 }
 
 function pairConditioning(_id, ctx) {
-  const cd = ctx.comparison.centerDynamics || [];
-  const rows = cd.filter(c => /Conditions/.test(c.dynamic)).map(c => {
-    const from = c.dynamic.startsWith('A') ? ctx.nameA : ctx.nameB;
-    const to = c.dynamic.startsWith('A') ? ctx.nameB : ctx.nameA;
-    return `<div class="dp-row">${centerLink(c.center)}<span class="dp-row-note">${esc(from)} conditions ${esc(to)}</span></div>`;
-  }).join('');
+  const rows = conditioningOf(ctx.comparison, ctx.nameA, ctx.nameB).map(c =>
+    `<div class="dp-row">${centerLink(c.center)}<span class="dp-row-note">${esc(c.from)} conditions ${esc(c.to)}</span></div>`).join('');
   return {
     label: 'Conditioning',
     title: 'Where one of you shapes the other',
@@ -693,7 +710,7 @@ function teamChannel(id, ctx) {
   const ch = CHANNEL_BY_KEY[id];
   if (!ch) return null;
   const full = ctx.charts.map((c, i) => c.channels.some(x => channelKey(x) === id) ? i : -1).filter(i => i >= 0);
-  const ems = (ctx.result.electromagnetics || []).filter(e => e.gates.slice().sort((x, y) => x - y).join('-') === id);
+  const ems = (ctx.result.electromagnetics || []).filter(e => channelKeyOf(e.gates) === id);
   const desc = CHANNEL_DESCRIPTIONS[id];
   const half = ch.gates.map(g => {
     const who = ctx.charts.map((c, i) => c.gates.all.includes(g) ? i : -1).filter(i => i >= 0);
