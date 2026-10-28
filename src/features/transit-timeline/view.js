@@ -233,7 +233,6 @@ export function createTransitTimeline({ root, host, messages, locale = 'en-GB', 
     const model = host.buildModel(chart.chart, activations, mode);
     context ||= {};
     Object.assign(context, { transitGates: activations, mode, model, decorateDetail, onDetailClose: clearTimingState });
-    const fixings = host.lineFixings?.(chart.chart, activations);
     const nextGraphKey = `${mode}:${[...model.transitGates].sort((a, b) => a - b).join(',')}`;
     if (graphChart !== chart.chart || graphKey !== nextGraphKey || !context.api) {
       context.api = host.renderGraph($('.tl-graph'), chart.chart, context, highlight);
@@ -243,18 +242,15 @@ export function createTransitTimeline({ root, host, messages, locale = 'en-GB', 
     }
     // Keep the birth columns fixed; only the left transit column follows time.
     if (!$('.tl-planets').children.length) {
-      $('.tl-planets').innerHTML = host.planets.map(planet => `<button type="button" class="tl-planet bg-planet-row" data-planet="${planet.id}" title="${esc(planet.name)}"><span class="bg-planet-glyph" aria-hidden="true">${esc(planet.glyph)}</span><strong class="bg-planet-act"></strong><span class="tl-fixing-mark" aria-hidden="true"></span></button>`).join('');
-      $('.tl-birth-planets').innerHTML = host.planets.map(planet => `<div class="tl-birth-row"><button type="button" class="tl-birth-value bg-planet-row bg-planets-design" data-birth-planet="${planet.id}" data-side="design"><span class="tl-fixing-mark" aria-hidden="true"></span><span class="bg-planet-act"></span></button><span class="bg-planet-glyph tl-birth-glyph" aria-hidden="true">${esc(planet.glyph)}</span><button type="button" class="tl-birth-value bg-planet-row bg-planets-personality" data-birth-planet="${planet.id}" data-side="personality"><span class="bg-planet-act"></span><span class="tl-fixing-mark" aria-hidden="true"></span></button></div>`).join('');
+      $('.tl-planets').innerHTML = host.planets.map(planet => `<button type="button" class="tl-planet bg-planet-row" data-planet="${planet.id}" title="${esc(planet.name)}"><span class="bg-planet-glyph" aria-hidden="true">${esc(planet.glyph)}</span><strong class="bg-planet-act"></strong></button>`).join('');
+      $('.tl-birth-planets').innerHTML = host.planets.map(planet => `<div class="tl-birth-row"><button type="button" class="tl-birth-value bg-planet-row bg-planets-design" data-birth-planet="${planet.id}" data-side="design"><span class="bg-planet-act"></span></button><span class="bg-planet-glyph tl-birth-glyph" aria-hidden="true">${esc(planet.glyph)}</span><button type="button" class="tl-birth-value bg-planet-row bg-planets-personality" data-birth-planet="${planet.id}" data-side="personality"><span class="bg-planet-act"></span></button></div>`).join('');
     }
     root.querySelectorAll('[data-planet]').forEach(node => {
       const value = activations[node.dataset.planet];
       const planet = host.planets.find(planet => planet.id === node.dataset.planet);
       node.dataset.gate = value?.gate ?? '';
       setText(node.querySelector('strong'), value ? `${value.gate}.${value.line}` : '—');
-      const fixing = fixings?.transit[node.dataset.planet];
-      const state = mode === 'transit-only' ? fixing?.transitOnlyState : fixing?.combinedState;
-      const scope = mode === 'transit-only' ? t('transitFixing') : t('combinedFixing');
-      renderFixing(node, state, `${t('transit')} · ${planet.name} · ${node.querySelector('strong').textContent}`, scope);
+      labelPlanet(node, `${t('transit')} · ${planet.name} · ${node.querySelector('strong').textContent}`);
     });
     $('.tl-birth-column').hidden = mode === 'transit-only';
     root.querySelectorAll('[data-birth-planet]').forEach(node => {
@@ -263,23 +259,16 @@ export function createTransitTimeline({ root, host, messages, locale = 'en-GB', 
       node.dataset.gate = value?.gate ?? '';
       const text = value ? `${value.gate}.${value.line}` : '—';
       setText(node.querySelector('.bg-planet-act'), text);
-      const fixing = fixings?.birth[node.dataset.side]?.[node.dataset.birthPlanet];
-      const scope = fixing?.temporaryChange
-        ? `${t('temporaryFixing')} · ${t('natalFixing')}: ${t(`fixing_${fixing.natalState}`)}`
-        : t('natalFixing');
-      renderFixing(node, fixing?.transitAdjustedState, `${t(node.dataset.side)} · ${planet.name} · ${text}`, scope);
+      labelPlanet(node, `${t(node.dataset.side)} · ${planet.name} · ${text}`);
     });
     root.querySelectorAll('.tl-legend [data-source]').forEach(node => {
       node.hidden = mode === 'transit-only' && node.dataset.source !== 'transit';
     });
   }
 
-  function renderFixing(node, state, baseTitle, scope) {
-    const mark = node.querySelector('.tl-fixing-mark');
-    mark.dataset.state = state || '';
-    setText(mark, ({ exalted: '▲', detriment: '▼', juxtaposed: '▲▼', unknown: '?' })[state] || '');
-    node.title = state ? `${baseTitle} · ${scope} · ${t(`fixing_${state}`)}` : baseTitle;
-    node.setAttribute('aria-label', node.title);
+  function labelPlanet(node, title) {
+    node.title = title;
+    node.setAttribute('aria-label', title);
   }
 
   function selectTime(instant, { recenter = false } = {}) {

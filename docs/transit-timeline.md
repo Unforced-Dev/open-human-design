@@ -35,8 +35,6 @@ Birth activations use the original warm-neutral source styling; transit activati
 
 Click a bar, a row symbol, or a graph element to open its existing chart detail. Selecting a bar first moves the selected instant inside that interval when needed. Temporary transit participation adds a compact start/end/duration summary; permanent natal activation has no timing summary. Durations use days, hours, and minutes. Complete planet and line descriptions remain visible below the detail heading.
 
-The planet columns include line-fixing marks. See [line-fixing provenance and limitations](line-fixing-research.md), including the unavailable rule for 54.4, shown as `?`.
-
 ## Accuracy and limits
 
 The worker samples every minute, detects gate changes, and refines detected crossings to approximately one second. Boundaries are estimates: a planet that leaves and returns to the same gate between two samples can be missed. A bar clipped by the calculated range does not imply that its activation began or ended at that boundary. The short labels “Started earlier” and “Ends later” retain this distinction; hover text supplies the fuller explanation.
@@ -54,7 +52,6 @@ The app entry is `src/views/timeline.js`. It supplies chart access, source model
 | `client.js`, `timeline.worker.js` | Worker lifecycle, cancellation, progress, and cache |
 | `presets.js`, `time.js`, `ruler.js` | Calendar ranges, duration formatting, and date/month boundaries |
 | `viewport.js` | Bounded panning, anchored zoom, selection, and clipping |
-| `line-fixing.js`, `line-fixing-data.js` | Pure fixing calculation and attributed rule data |
 | `view.js`, `timeline.css`, `messages.js` | UI, theme styles, and English messages |
 
 The view exposes `activate()`, `deactivate()`, `refresh()`, and `destroy()`. Deactivation cancels current work; destruction releases workers and listeners. The existing detail renderer accepts optional `decorateDetail` and `onDetailClose` callbacks so timeline navigation can update the same dialog without introducing another modal.
@@ -79,4 +76,4 @@ E2E_URL=http://127.0.0.1:5173 npm run e2e:timeline
 
 `CHROME_PATH` overrides the browser executable; `CHROME_CHANNEL` chooses a Playwright channel. CI installs Playwright Chromium and uses `CHROME_CHANNEL=chromium`. Set `SKIP_TIMELINE_YEAR=1` to omit the two slower full-year browser calculations; the default run includes them.
 
-The dedicated checks cover interval boundaries, cancellation, calendar days and DST, line fixing, stable rows, source highlights, gestures, details, desktop/mobile layout, and panel-contained progress. They use synthetic chart fixtures and do not call geocoding services. The repository's broader `npm test` and `npm run e2e` checks remain separate and include external-service behavior.
+The dedicated checks cover interval boundaries, cancellation, calendar days and DST, stable rows, source highlights, gestures, details, desktop/mobile layout, and panel-contained progress. They use synthetic chart fixtures and do not call geocoding services. The repository's broader `npm test` and `npm run e2e` checks remain separate and include external-service behavior.

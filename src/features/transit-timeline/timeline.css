@@ -78,7 +78,6 @@
 .tl .bg-planet-act { min-width: 0; font-variant-numeric: tabular-nums; font-weight: 600; }
 .tl .bg-planets { min-width: 0; }
 .tl .tl-transit-column.bg-planets { padding-top: 0; gap: 0; }
-.tl-fixing-mark { flex: 0 0 7px; width: 7px; font-size: 7px; line-height: 7px; white-space: normal; overflow-wrap: anywhere; text-align: center; color: var(--text-secondary); }
 .tl-explorer, .tl-tracks-panel { min-width: 0; }
 .tl-tracks-panel { position: relative; z-index: 0; display: flex; flex-direction: column; height: calc(var(--tl-canvas-height) + 2px); border: 1px solid var(--tl-line); border-radius: 8px; background: var(--tl-surface); overflow: hidden; }
 .tl-table { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; background: var(--tl-surface); overscroll-behavior-x: contain; scrollbar-gutter: stable; }
