@@ -20,7 +20,7 @@ const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
 import { renderBodygraph, PLANET_ORDER, PLANET_GLYPHS, PLANET_NAMES } from '../bodygraph.js';
 import { esc, formatBirth } from '../lib/format.js';
-import { birthToParams, connectionUrl } from '../lib/share.js';
+import { birthToParams, connectionUrl, SELF_NAME } from '../lib/share.js';
 import { dt } from '../lib/details.js';
 import { registerScope, openDetail, refreshDetail } from '../detail-panel.js';
 import { startSteps, FIRST_CHART_NAME } from '../lib/starthere.js';
@@ -126,7 +126,7 @@ export function renderChartView(data, { onShare, onRename } = {}) {
       const blob = await res.blob();
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = `${(birth.name || 'human-design').replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-chart.png`;
+      a.download = `${(birth.name && birth.name !== SELF_NAME ? birth.name : 'human-design').replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-chart.png`;
       document.body.appendChild(a);
       a.click();
       a.remove();

@@ -68,6 +68,29 @@ const newPage = async (viewport = { width: 390, height: 844 }) => {
     expect(/[?&]d=1990-06-15/.test(search) && !/[?&]n=/.test(search), `address bar: ${search}`);
   });
 
+  await check('"Me" is not in the copied link, the invite or the saved image', async () => {
+    await page.evaluate(() => {
+      window.__copied = [];
+      Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async (t) => { window.__copied.push(t); } } });
+    });
+    await page.$eval('#share-chart', b => b.click());
+    await page.$eval('#invite-compare', b => b.click());
+    await page.waitForFunction(() => window.__copied.length === 2);
+    const copied = await page.evaluate(() => window.__copied);
+    expect(copied.every(u => /[?&]d=1990-06-15/.test(u) && !/[?&]n=/.test(u)), `copied: ${copied.join(' | ')}`);
+
+    // The static dev build has no /og endpoint; stand in for it and look at what the app asks for.
+    let cardUrl = '';
+    await page.route('**/og/card.png*', (route) => {
+      cardUrl = route.request().url();
+      route.fulfill({ status: 200, contentType: 'image/png', body: Buffer.from('89504e470d0a1a0a', 'hex') });
+    });
+    const [download] = await Promise.all([page.waitForEvent('download'), page.$eval('#save-image', b => b.click())]);
+    await page.unroute('**/og/card.png*');
+    expect(cardUrl && !/[?&]n=/.test(new URL(cardUrl).search), `image card request: ${cardUrl}`);
+    expect(!/^me-/.test(download.suggestedFilename()), `image file name: ${download.suggestedFilename()}`);
+  });
+
   await check('it is still there after coming back to the bare address', async () => {
     await page.goto(BASE);
     await page.waitForSelector('#chart-view:not(.hidden) .bodygraph-svg');
