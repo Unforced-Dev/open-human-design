@@ -212,5 +212,22 @@ for (let i = 0; i < 8; i++) {
 }
 step('10. sign-in emails to one address, rotating X-Forwarded-For', statuses.includes(429), statuses.join(' '));
 
+// --- 11-12. privacy quick wins -------------------------------------------------
+{
+  const share = '/?d=1985-01-13&t=14:30&tz=-5&n=Sam&place=New+York&lat=40.712776&lon=-74.005974&iana=America/New_York';
+  const r = await fetch(B + share);
+  const html = await r.text();
+  const ogUrl = html.match(/property="og:url" content="([^"]*)"/)?.[1] || '';
+  const leaks = ['lat=', 'lon=', 'place=', 'iana='].filter(k => ogUrl.includes(k));
+  step('11a. share page og:url repeats place + coordinates', !leaks.length, ogUrl);
+  step('11b. share page can be indexed', /<meta name="robots" content="noindex">/.test(html) && /noindex/.test(r.headers.get('x-robots-tag') || ''),
+    { meta: /name="robots"/.test(html), xRobotsTag: r.headers.get('x-robots-tag') });
+}
+{
+  const hits = [];
+  for (const p of ['/', '/gate/1']) if (/fonts\.(googleapis|gstatic)\.com/.test(await (await fetch(B + p)).text())) hits.push(p);
+  step('12. pages load Google Fonts (visitor IP to Google)', !hits.length, hits.length ? hits : 'none on / and /gate/1');
+}
+
 console.log(`\n${open} step(s) OPEN`);
 process.exit(open);

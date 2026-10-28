@@ -6,7 +6,8 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { authBaseURL, httpsRedirect, rejectTokenWithoutVerifier, withSecurityHeaders } from '../worker/security.js';
+import { readFileSync } from 'node:fs';
+import { authBaseURL, httpsRedirect, rejectTokenWithoutVerifier, withSecurityHeaders, CSP } from '../worker/security.js';
 import { classifyChange } from '../worker/sync.js';
 
 test('better-auth baseURL is never an http production origin', () => {
@@ -32,6 +33,12 @@ test('security headers land on immutable responses too', () => {
   // A page's own (stricter) CSP is kept
   const own = withSecurityHeaders(new Response('x', { headers: { 'content-security-policy': "default-src 'none'" } }));
   assert.equal(own.headers.get('content-security-policy'), "default-src 'none'");
+});
+
+test('static assets (public/_headers) carry the same CSP as Worker responses', () => {
+  const headers = readFileSync(new URL('../public/_headers', import.meta.url), 'utf8');
+  assert.equal(headers.match(/Content-Security-Policy: (.*)/)?.[1], CSP);
+  assert.match(headers, /X-Frame-Options: DENY/);
 });
 
 const tokenReq = (body) => new Request('https://openhumandesign.com/oauth/token', {

@@ -66,9 +66,7 @@ function shell({ title, description, path, h1, kicker, body, breadcrumb }) {
 <meta property="og:image" content="${ORIGIN}/og.png">
 <meta property="og:site_name" content="Open Human Design">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/fonts/fonts.css">
 <style>
 :root{--bg:#faf8f5;--card:#fff;--sunken:#f0ede8;--text:#1a1714;--soft:#6b6560;--line:#e7e1d8;--accent:#9a5e1c;--accent2:#c47a2a}
 *{box-sizing:border-box}
