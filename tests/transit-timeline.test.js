@@ -189,6 +189,17 @@ test('the adaptive scan finds exactly what a minute-by-minute scan finds', () =>
   assert.ok(adaptiveCalls * 10 < 7 * 24 * 60, `adaptive scan used ${adaptiveCalls} snapshots`);
 });
 
+test('a range shorter than one scan step still finishes when safeStep is given', () => {
+  let calls = 0;
+  const result = calculateTimeline({ start: 0, end: 30_000, scanStep: MINUTE, safeStep: () => DAY,
+    snapshot: () => { assert.ok(++calls < 100, 'scan did not advance'); return { sun: { gate: 1, line: 1 } }; },
+    states: () => new Map([['gate:1', 'transit']]), catalog: [{ key: 'gate:1' }] });
+  assert.equal(result.end, 30_000);
+  assert.deepEqual(result.rows[0].intervals, [
+    { start: 0, end: 30_000, source: 'transit', clippedStart: true, clippedEnd: true }
+  ]);
+});
+
 test('safeStep is the time before any planet can reach a gate edge', () => {
   // Gate 25 starts at 358.25°; 1° inside it at the Moon's 16°/day bound is 1.5 hours.
   assert.equal(safeStep({ moon: { longitude: 359.25 } }), 1.5 * 3_600_000);

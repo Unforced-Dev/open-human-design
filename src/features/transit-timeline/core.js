@@ -48,7 +48,7 @@ export function calculateTimeline({ start, end, snapshot, states, catalog,
   while (previousTime < end) {
     // Whole scan steps keep samples on the same grid as a plain scan.
     const safe = safeStep?.(previous);
-    const steps = safe > scanStep ? Math.floor(Math.min(safe, end - start) / scanStep) : 1;
+    const steps = safe > scanStep ? Math.max(1, Math.floor(Math.min(safe, end - start) / scanStep)) : 1;
     const time = Math.min(previousTime + steps * scanStep, end);
     const current = snapshot(time);
     let crossings;
