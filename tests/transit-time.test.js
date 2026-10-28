@@ -24,7 +24,8 @@ test('engine receives the selected minute and changes transit output during the 
   });
   assert.deepEqual(times.map(t => `${t.gates.moon.gate}.${t.gates.moon.line}`), ['13.3', '13.6', '49.4']);
   // 20:00 in Shanghai is the engine's legacy date-only default: noon UTC.
-  assert.deepEqual(times[2].gates, calculateTransitGates('2026-09-23').gates);
+  const activations = gates => Object.fromEntries(Object.entries(gates).map(([planet, g]) => [planet, `${g.gate}.${g.line}`]));
+  assert.deepEqual(activations(times[2].gates), activations(calculateTransitGates('2026-09-23').gates));
 });
 
 test('historical DST, half-hour zones and midnight use the selected date', () => {
@@ -86,5 +87,16 @@ test('both transit APIs match direct astronomy at the selected minute in any hos
       assert.ok(Math.abs(gates[planet].longitude - expected[planet].longitude) < 1e-8, `${iso}: ${planet}`);
     }
     assert.deepEqual(calculateHDTransits({}, ...args).transitGates, gates);
+  }
+});
+
+test('every whole minute reaches the engine as that minute, not the one before', () => {
+  // NatalEngine 1.6 truncates float minutes (12.0166… h → 12:00); the Moon moves every minute.
+  const start = Date.parse('2026-10-28T18:00:00Z');
+  let previous = calculateTransitGates(...engineTransitArguments(start - 60_000)).gates.moon.longitude;
+  for (let minute = 0; minute < 60; minute++) {
+    const moon = calculateTransitGates(...engineTransitArguments(start + minute * 60_000)).gates.moon.longitude;
+    assert.notEqual(moon, previous, `minute ${minute} computed as the minute before`);
+    previous = moon;
   }
 });

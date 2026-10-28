@@ -48,5 +48,6 @@ export function engineTransitArguments(instant) {
   const localClock = new Date(instant);
   localClock.setUTCFullYear(date.getFullYear(), date.getMonth(), date.getDate());
   localClock.setUTCHours(date.getHours(), date.getMinutes(), 0, 0);
-  return [date, (localClock.getTime() - instant) / HOUR];
+  // The engine truncates float minutes (12.0166… h becomes 12:00), so aim 1 ms late.
+  return [date, (localClock.getTime() - instant - 1) / HOUR];
 }
