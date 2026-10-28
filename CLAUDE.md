@@ -15,7 +15,10 @@ npm run build    # Build for production
 npm run preview  # Preview production build
 npm test         # Unit tests incl. MCP server (node --test; hits Open-Meteo)
 npm run e2e      # Browser smoke test (needs dev server running + Chrome)
-npx wrangler dev # Worker locally: SPA + /mcp (build first)
+npx wrangler dev # Worker locally: SPA + /mcp (build first; migrate local D1 once:
+                 #   npx wrangler d1 migrations apply open-human-design --local)
+node tests/mcp-connect-e2e.mjs http://localhost:8787 <wrangler.log>  # AI connect flow, SDK + Chrome
+node tests/security-probe.mjs http://localhost:8787 <wrangler.log>   # audit exploit replay (local only)
 npx wrangler deploy  # Deploy to Cloudflare (needs wrangler login)
 ```
 

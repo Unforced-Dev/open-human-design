@@ -106,9 +106,15 @@ export async function handleChartSvg(request) {
  * Manifesting Generator…" + the per-chart card instead of the generic
  * site tags. Runs for everyone (harmless for humans — meta tags only).
  */
+function withNoindex(response) {
+  const out = new Response(response.body, response);
+  out.headers.set('X-Robots-Tag', 'noindex');
+  return out;
+}
+
 export function rewriteShareMeta(htmlResponse, url) {
   const params = parseChartParams(url.searchParams);
-  if (!params) return htmlResponse;
+  if (!params) return withNoindex(htmlResponse);
 
   let title, description;
   try {
@@ -117,7 +123,7 @@ export function rewriteShareMeta(htmlResponse, url) {
     title = `${who} — ${chart.type.name} ${chart.profile.numbers}`;
     description = `${chart.authority.name} · ${chart.definition} · ${chart.incarnationCross?.name ? 'Cross of ' + chart.incarnationCross.name.replace(/^The /, '') : 'Human Design'} — see the full chart, free.`;
   } catch {
-    return htmlResponse;
+    return withNoindex(htmlResponse);
   }
 
   const imgParams = new URLSearchParams();
@@ -126,12 +132,15 @@ export function rewriteShareMeta(htmlResponse, url) {
   imgParams.set('tz', String(params.timezone));
   if (params.name) imgParams.set('n', params.name);
   const image = `${url.origin}/og/card.png?${imgParams}`;
+  // Bare link (date, time, offset, name): place and coordinates stay out of
+  // unfurls, and crawlers are told not to index anyone's chart.
+  const bareUrl = `${url.origin}/?${imgParams}`;
 
   const swap = {
     'og:title': title,
     'og:description': description,
     'og:image': image,
-    'og:url': url.toString(),
+    'og:url': bareUrl,
     'twitter:title': title,
     'twitter:description': description,
     'twitter:image': image
@@ -149,5 +158,10 @@ export function rewriteShareMeta(htmlResponse, url) {
         el.setInnerContent(`${title} — Open Human Design`);
       }
     })
-    .transform(htmlResponse);
+    .on('head', {
+      element(el) {
+        el.append('<meta name="robots" content="noindex">', { html: true });
+      }
+    })
+    .transform(withNoindex(htmlResponse));
 }

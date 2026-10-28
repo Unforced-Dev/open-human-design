@@ -1,0 +1,10 @@
+✔ first connect asks for authorization (401 → OAuth)
+✔ SDK registered a client and sent PKCE S256
+✔ signed out: /authorize shows the sign-in page
+✔ sign-in page confirms the email was sent
+✖ magic link carries only a short pending id, not the OAuth query
+  /authorize?response_type=code&client_id=kVZn8aiN5F2OaJ00&code_challenge=46Qwl4QtANsZnG6QLF-Nlj8zcuEErcSfzD2xZKMJhVs&code_challenge_method=S256&redirect_uri=http%3A%2F%2F127.0.0.1%3A9%2Foauth%2Fcallback&scope=charts%3Aread+charts%3Awrite&resource=http%3A%2F%2F127.0.0.1%3A8797%2Fmcp
+✖ after the magic link: consent page (not a 403)
+  http://127.0.0.1:8797/api/auth/magic-link/verify?token=CXdJrMVZeaeCrGxCkFVUyjfan… → {"message":"Invalid callbackURL","code":"INVALID_CALLBACK_URL"}
+
+2 FAILED

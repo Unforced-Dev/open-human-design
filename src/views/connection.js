@@ -43,6 +43,18 @@ export function setupConnectionView() {
   });
 }
 
+/**
+ * Is the shared guest the chart on screen? By id when either has one; an
+ * unsaved chart (shared link, or a nameless invitee) has none, so compare
+ * the birth data itself.
+ */
+function isSamePerson(guest, birth) {
+  if (!birth) return false;
+  if (guest.id || birth.id) return guest.id === birth.id;
+  return guest.birthDate === birth.birthDate && guest.birthTime === birth.birthTime &&
+    (guest.name || '') === (birth.name || '');
+}
+
 /** Refresh the saved-people picker each time the view opens. */
 export function renderConnectionView() {
   const select = document.getElementById('conn-person');
@@ -54,7 +66,7 @@ export function renderConnectionView() {
     .join('');
   // A chart they arrived at via a share link stays comparable (P1-11).
   const guest = getSharedGuest();
-  const guestOpt = guest?.name && guest?.birthDate && guest.id !== current?.birth?.id
+  const guestOpt = guest?.name && guest?.birthDate && !isSamePerson(guest, current?.birth)
     ? `<option value="__guest">${esc(guest.name)} (shared chart)</option>` : '';
   select.innerHTML = `<option value="">— enter birth data below —</option>${guestOpt}${options}`;
   select.onchange = () => {

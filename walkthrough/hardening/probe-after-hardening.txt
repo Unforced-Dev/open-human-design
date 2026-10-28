@@ -1,0 +1,75 @@
+
+## 0. security headers on every route
+BLOCKED  all of content-security-policy, strict-transport-security, x-frame-options, x-content-type-options, referrer-policy on 8 routes
+
+## 1. session cookie (local origin is http, so no Secure here; prod http now 301s first)
+info     ["better-auth.session_token=<redacted>; Max-Age=7776000; Path=/; HttpOnly; SameSite=Lax"]
+
+## 2a. audit payload: 400k-char tombstone
+BLOCKED  status 413, not stored
+
+## 2b. junk tombstone for an id the server never had
+BLOCKED  status 200, not stored
+
+## 2c. 200 new tombstone ids in one request (fills D1 past the cap)
+BLOCKED  0 stored
+
+## 2d. a real delete keeps no birth data on the server
+BLOCKED  {"id":"p-gone","updatedAt":"2026-10-28T18:09:49.416Z","deletedAt":"2026-10-28T18:09:49.416Z"}
+
+## 3. live record with unvalidated location.*
+BLOCKED  status 200, not stored
+
+## 4. /api/sync accepts text/plain + foreign Origin (CSRF)
+BLOCKED  status 403
+
+## 5. anonymous dynamic client registration (open by design for MCP clients)
+info     {"status":201,"client_name":"Claude","redirect_uris":["https://evil.example/cb"]}
+
+## 6a. consent page for a request with no PKCE
+BLOCKED  {"status":200,"h1":"Nothing to connect"}
+
+## 6b. consent page for PKCE "plain"
+BLOCKED  status 200
+
+## 6c. consent page (S256) shows the redirect host
+BLOCKED  {"h1":"Connect “Claude”?","hostShown":true,"warning":true}
+
+## 7. POST /authorize with no Origin issues a code
+BLOCKED  {"foreign":403,"noOrigin":403}
+
+## 8. no-PKCE request: Connect → code → token without a verifier
+BLOCKED  {"consentPost":200,"codeIssued":false}
+
+## 8b. victim clicks Connect on the S256 request anyway
+info     {"status":302,"redirectedTo":"https://evil.example/cb?code=<redacted>&state=s1"}
+
+## 8c. S256 code exchanged with the verifier left out
+BLOCKED  {"status":400,"error":"invalid_request"}
+
+## 9a. list_people with a charts:read token (allowed by that scope)
+info     {"status":200,"isError":false,"text":"{\n \"people\": [\n  {\n   \"id\": \"p-mom\",\n   \"name\": \"Mom\",\n   \"birthDate\": \"1960-03-01\",\n   \"birthTime\": \"08:00\",\n   \"place\": null\n  }\n ],\n \"note\": \"1 more saved person has AI access turned off — they can be enabled in the app.\"\n}"}
+
+## 9b. LIKE wildcard reveals a hidden person
+BLOCKED  Error: No saved person named "Sec%" that your AI can see. Use list_people to see who is available (people with AI access off stay hidden; the user can turn it on in the app), or save_person to add them.
+
+## 9b2. a hidden person's exact name answers differently from a missing one
+BLOCKED  Error: No saved person named "Secret Ex" that your AI can see. Use list_people to see who is available (people with AI access off stay hidden; the user can turn it on in the app), or save_person to add them.
+
+## 9c. delete_person with a read-only (charts:read) token
+BLOCKED  Error: delete_person calls need the "charts:write" permission, which this connection was not granted. Reconnect Open Human Design from your AI app and allow it.
+
+## 10. sign-in emails to one address, rotating X-Forwarded-For
+BLOCKED  200 200 200 200 200 429 429 429
+
+## 11a. share page og:url repeats place + coordinates
+BLOCKED  http://127.0.0.1:8796/?d=1985-01-13&t=14%3A30&tz=-5&n=Sam
+
+## 11b. share page can be indexed
+BLOCKED  {"meta":true,"xRobotsTag":"noindex"}
+
+## 12. pages load Google Fonts (visitor IP to Google)
+BLOCKED  none on / and /gate/1
+
+0 step(s) OPEN
+exit 0

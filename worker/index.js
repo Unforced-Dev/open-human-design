@@ -24,6 +24,7 @@ import { handleSync } from './sync.js';
 import { handleAuthorize, verifyInterstitial } from './oauth-ui.js';
 import { handleOgImage, handleChartSvg, rewriteShareMeta } from './og.js';
 import { handleSeoPage, handleSitemap, handleRobots } from './seo.js';
+import { authBaseURL, httpsRedirect, rejectTokenWithoutVerifier, scopeTokenProps, withSecurityHeaders, SCOPES } from './security.js';
 
 const MCP_CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -88,11 +89,20 @@ const defaultHandler = {
       }
 
       if (pathname.startsWith('/api/auth/')) {
-        const auth = createAuth(env, url.origin);
+        const auth = createAuth(env, authBaseURL(url));
         return withHeaders(await auth.handler(request), cors);
       }
 
       if (pathname === '/api/sync' && request.method === 'POST') {
+        // CSRF: JSON only (a cross-site form can't send it without a
+        // preflight) and no foreign Origin, on top of SameSite=Lax.
+        const origin = request.headers.get('Origin');
+        if (origin && origin !== url.origin && !API_ORIGINS.has(origin)) {
+          return Response.json({ error: 'bad origin' }, { status: 403 });
+        }
+        if ((request.headers.get('content-type') || '').split(';')[0].trim().toLowerCase() !== 'application/json') {
+          return withHeaders(Response.json({ error: 'expected application/json' }, { status: 415 }), cors);
+        }
         const session = await getSession(env, request);
         if (!session) {
           return withHeaders(Response.json({ error: 'unauthorized' }, { status: 401 }), cors);
@@ -129,12 +139,29 @@ const mcpHandler = {
   }
 };
 
-export default new OAuthProvider({
+const oauthProvider = new OAuthProvider({
   apiRoute: '/mcp',
   apiHandler: mcpHandler,
   defaultHandler,
   authorizeEndpoint: '/authorize',
   tokenEndpoint: '/oauth/token',
   clientRegistrationEndpoint: '/oauth/register',
-  scopesSupported: ['charts:read', 'charts:write']
+  scopesSupported: SCOPES,
+  // OAuth 2.1: S256 only. Without a code_challenge the method defaults to
+  // "plain", so this also rejects authorize requests that skip PKCE.
+  allowPlainPKCE: false,
+  // Each access token carries the scopes it was issued with, so the MCP
+  // tools can enforce them (worker/security.js).
+  tokenExchangeCallback: scopeTokenProps
 });
+
+export default {
+  async fetch(request, env, ctx) {
+    const url = new URL(request.url);
+    const upgrade = httpsRedirect(url);
+    if (upgrade) return withSecurityHeaders(upgrade);
+    const noVerifier = await rejectTokenWithoutVerifier(request);
+    if (noVerifier) return withSecurityHeaders(noVerifier);
+    return withSecurityHeaders(await oauthProvider.fetch(request, env, ctx));
+  }
+};

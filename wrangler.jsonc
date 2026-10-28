@@ -17,6 +17,11 @@
     // (curl tests pass because they don't send navigation headers).
     "run_worker_first": ["/", "/og/*", "/chart.svg", "/api/*", "/auth/*", "/authorize", "/oauth/*", "/mcp", "/.well-known/*", "/human-design", "/compatibility", "/celebrity", "/celebrity/*", "/circuit/*", "/gate/*", "/type/*", "/center/*", "/channel/*", "/profile/*", "/sitemap.xml", "/robots.txt"]
   },
+  // Local dev: act as http://localhost:8787 instead of the custom domain.
+  // Without this, wrangler dev presents requests as http://openhumandesign.com,
+  // which the Worker now 301s to https (and magic links pointed at prod).
+  // On another port pass --local-upstream 127.0.0.1:<port>.
+  "dev": { "host": "localhost:8787" },
   "workers_dev": true,
   "routes": [
     { "pattern": "openhumandesign.com", "custom_domain": true },

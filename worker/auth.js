@@ -15,6 +15,8 @@
 import { betterAuth } from 'better-auth';
 import { magicLink } from 'better-auth/plugins';
 import { D1Dialect } from 'kysely-d1';
+import { authBaseURL } from './security.js';
+import { parkPendingAuthorize } from './oauth-ui.js';
 
 async function sendMagicLinkEmail(env, { email, url }) {
   try {
@@ -74,15 +76,29 @@ export function createAuth(env, baseURL) {
       expiresIn: 60 * 60 * 24 * 90, // 90 days — low-stakes data, low friction
       updateAge: 60 * 60 * 24
     },
+    // Client IP from Cloudflare's own header: X-Forwarded-For is client-
+    // supplied, so keying on it let anyone rotate past the limit.
+    advanced: { ipAddress: { ipAddressHeaders: ['cf-connecting-ip'] } },
+    // Stored in D1 (migrations/0004_rate_limit.sql): isolate memory resets
+    // per isolate, so it never held across Cloudflare's fleet.
+    rateLimit: {
+      enabled: true,
+      storage: 'database',
+      customRules: {
+        '/sign-in/magic-link': { window: 60, max: 5 }, // per IP; each one sends an email
+        '/get-session': false                         // every page load; not worth a D1 write
+      }
+    },
     plugins: [
       magicLink({
         // 15 min — interstitial adds a human step, so give comfortable slack
         expiresIn: 900,
-        sendMagicLink: async ({ email, url }) => {
+        sendMagicLink: async ({ email, url, metadata }) => {
           // Email the styled interstitial (/auth/verify), not the raw
           // endpoint: mail scanners prefetch links and would consume the
           // single-use token before the human clicks.
-          const interstitial = url.replace('/api/auth/magic-link/verify', '/auth/verify');
+          const link = await parkPendingAuthorize(env, url, metadata);
+          const interstitial = link.replace('/api/auth/magic-link/verify', '/auth/verify');
           return sendMagicLinkEmail(env, { email, url: interstitial });
         }
       })
@@ -92,6 +108,6 @@ export function createAuth(env, baseURL) {
 
 /** Session for an incoming request, or null. */
 export async function getSession(env, request) {
-  const auth = createAuth(env, new URL(request.url).origin);
+  const auth = createAuth(env, authBaseURL(new URL(request.url)));
   return auth.api.getSession({ headers: request.headers });
 }

@@ -1,0 +1,18 @@
+✔ first connect asks for authorization (401 → OAuth)
+✔ SDK registered a client and sent PKCE S256
+✔ signed out: /authorize shows the sign-in page
+✔ sign-in page confirms the email was sent
+✔ magic link carries only a short pending id, not the OAuth query
+✔ after the magic link: consent page (not a 403)
+✔ consent shows the redirect host
+✔ Connect redirects back to the AI app with a code
+✔ no page errors or CSP violations in the browser
+✔ token exchange (PKCE verifier) gives an access + refresh token
+✔ granted scope is read + write
+✔ tools/list: 8 tools incl. the personal ones
+✔ save_person works with the write scope
+✔ compute_chart by saved name
+✔ delete_person cannot see or delete a hidden person
+✔ an AI delete leaves a bare tombstone (no birth data) and spares the hidden person
+
+Connect flow passed end to end

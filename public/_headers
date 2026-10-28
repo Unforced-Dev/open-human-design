@@ -1,0 +1,10 @@
+# Static assets served without the Worker (e.g. /assets/*, /fonts/*, SPA
+# fallback for unknown paths) get the same headers as worker/security.js.
+# Keep the CSP identical to worker/security.js (tests/security.test.js checks).
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-hashes' 'sha256-gtGrHqRVO8Sn5eXmUbqxXnrmgXIGawbqAeOXnKCVdQs='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://geocoding-api.open-meteo.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'
+  Strict-Transport-Security: max-age=31536000
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
